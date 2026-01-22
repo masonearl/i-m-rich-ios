@@ -1,75 +1,83 @@
-# I'm Rich - Launch Checklist
+# Wealth Forge - Launch Checklist
 
 ## App Store Submission
 
 ### 1. App Information
-- **Name**: I'm Rich
-- **Subtitle**: The $100 Status App
-- **Price**: $99.99 (Tier 85)
-- **Category**: Entertainment
+- **Name**: Wealth Forge
+- **Subtitle**: From Hustle to Empire
+- **Price**: $2.99 (Tier 1)
+- **Category**: Games > Strategy
+- **Secondary Category**: Games > Simulation
 - **Age Rating**: 4+
 
 ### 2. App Description
 
 **Headline**:
-The most pointless $100 app. If you have to ask, you can't afford it.
+Build your fortune. Choose your path. Shape your legacy.
 
 **Description**:
-I'm Rich is not an app. It's a statement.
+Wealth Forge is an addictive strategy idle game where you build your financial empire from nothing. Inspired by Universal Paperclips, this multi-phase wealth simulator lets you make real strategic decisions as you climb from broke to billionaire.
 
-For people who have so much money they don't know what to do with it. For billionaires who think $100 is pocket change. For the 1% who want to flex their wealth in the most absurd way possible.
-
-FEATURES:
-• Tap to create virtual money
-• Watch bills and coins fly around as you tilt your phone
-• Track your ridiculous virtual fortune
-• Build tap streaks for absolutely no reason
-• Share your meaningless wealth with friends
-• Zero practical utility
-
-This app does nothing useful. It accomplishes nothing. It's a $100 joke.
-
-And if you're reading this, you're probably not rich enough to buy it.
-
-This is not a purchase. This is a statement.
-
-I'M RICH.
+**Key Features**:
+- 4 distinct game phases with expanding mechanics
+- 4 unique career paths (Tech, Finance, Creator, Trades)
+- 14+ investment types from savings to venture capital
+- Random opportunity cards with risk/reward decisions
+- Product launches with success probabilities
+- Status ladder from project managers to world leaders
+- Passive income that grows while you're away
+- No ads, no IAP - premium experience
 
 ### 3. Keywords
-rich, wealth, money, luxury, status, billionaire, millionaire, flex, tap, game, clicker, idle, counter, tracker
+idle game, clicker, strategy, wealth simulator, incremental game, business tycoon, money game, universal paperclips, investment, career, simulation, wealth builder, finance game, prestige, idle clicker
 
 ### 4. Screenshots Needed (iPhone 6.7")
-1. Main screen with "I'M RICH" title and large money total
-2. Screen full of money emojis falling
-3. Stats screen showing tracking features
-4. Streak indicator active
-5. Share feature preview
+1. Main game screen showing Phase 1 with tap area and resources
+2. Career selection screen with all 4 paths
+3. Investments panel with multiple investment types
+4. Opportunity card appearing with risk/reward stats
+5. Phase 3 unlocked with product launches visible
+6. Networking section showing VIP contacts like Tim Cook/Elon Musk
 
 ### 5. App Icon
 - Create 1024x1024 icon
-- Suggestion: Green $ symbol on black background (minimalist)
+- Suggestion: Money bag or gold coin with upward arrow on dark background
+- Color: Rich gold/green gradient on black
 
 ### 6. Technical Requirements
-✅ Black background with matte forest green accents
-✅ Motion physics for money movement
-✅ Persistent data storage (AppStorage)
-✅ Share functionality
-✅ Stats tracking (taps, streaks, total)
-✅ No crashes or bugs
-✅ Privacy: No data collection
+✅ 4-phase progression system
+✅ Career path selection with 8 roles each
+✅ Investment system with risk levels
+✅ Opportunity cards with probability-based outcomes
+✅ Product launch mechanics
+✅ Contact/meeting system with status requirements
+✅ Upgrade system (skills, tools, network, lifestyle)
+✅ Streak multiplier system (up to 20x)
+✅ Passive income calculation
+✅ Persistent data storage (UserDefaults + Codable)
+✅ Dark UI optimized for OLED
+⬜ Background refresh for passive income (optional enhancement)
+⬜ Haptic feedback on taps and achievements (optional enhancement)
+⬜ Sound effects (optional enhancement)
 
 ### 7. Build Settings
 - Deployment Target: iOS 17.0+
-- Bundle ID: com.yourname.imrich
+- Bundle ID: com.yourname.wealthforge
 - Version: 1.0
 - Build: 1
 
-### 8. Pre-Launch
-- [ ] Test on real device
-- [ ] Verify all animations work
-- [ ] Test motion controls by tilting phone
-- [ ] Verify data persists after app restart
-- [ ] Test share functionality
+### 8. Pre-Launch Testing
+- [ ] Test Phase 1 → 2 → 3 → 4 progression
+- [ ] Test all 4 career paths and promotions
+- [ ] Test all investment types and returns
+- [ ] Test opportunity card success/failure outcomes
+- [ ] Test product launches
+- [ ] Test contact meetings unlock correctly
+- [ ] Verify passive income calculates correctly
+- [ ] Verify streak multipliers work
+- [ ] Test data persistence after app kill/restart
+- [ ] Test on real device (not just simulator)
+- [ ] Performance test with high numbers (billions/trillions)
 - [ ] Screenshot capture for App Store
 - [ ] Create app icon (1024x1024)
 - [ ] Set bundle identifier
@@ -77,23 +85,43 @@ rich, wealth, money, luxury, status, billionaire, millionaire, flex, tap, game, 
 - [ ] Upload to App Store Connect
 
 ### 9. Marketing Strategy
-- Post on X/Twitter: "I made a $100 app that does nothing. Who's buying?"
-- Tag tech journalists
-- Post on Product Hunt
-- Reddit: r/apple, r/ios
-- TikTok demo video
-- Press pitch: "The return of the infamous 'I'm Rich' app"
+
+**Launch Messaging**:
+"From the makers who asked 'what if Universal Paperclips was about getting rich?'"
+
+**Channels**:
+- Twitter/X: "I made an idle game where you can meet Elon Musk and the President. Also you tap to make money. $2.99, no ads, just vibes."
+- Reddit: r/incremental_games, r/iosgaming, r/IdleGamers
+- Product Hunt: Launch with Universal Paperclips comparison
+- TikTok: Screen recordings of phase unlocks and meeting Tim Cook
+- Discord: Share in idle game communities
+- TouchArcade forum post
+
+**Press Pitch**:
+"Wealth Forge combines the addictive simplicity of clicker games with the strategic depth of Universal Paperclips. Choose your career, invest wisely, launch products, and work your way from tapping for dollars to meeting world leaders."
 
 ### 10. Post-Launch
-- Monitor reviews
-- Track downloads
-- Respond to press inquiries
-- Share revenue stats
+- [ ] Monitor reviews for bug reports
+- [ ] Track conversion rate
+- [ ] Respond to player feedback
+- [ ] Plan updates based on feedback:
+  - Prestige/reset system for replayability
+  - More career paths
+  - Additional opportunity cards
+  - Housing system expansion
+  - Achievement system
+  - iCloud sync
 
-## Expected Outcome
-Original "I'm Rich" (2008): 8 sales at $999 = ~$8,000
-Your version: Better UX, viral potential, $100 price point
-Conservative estimate: 20-50 sales = $2,000-$5,000
-Viral scenario: 200+ sales = $20,000+
+### 11. Revenue Expectations
+- Price: $2.99
+- Break-even at ~50 downloads
+- Target: 500 downloads first month = ~$1,000
+- Stretch goal: 2,000+ downloads = $4,000+
 
-The key is press coverage. This will be newsworthy.
+### 12. Competitive Analysis
+- **Universal Paperclips** - Web-based, complex late game, free
+- **Adventure Capitalist** - F2P with IAP, simpler mechanics
+- **Egg Inc** - F2P with IAP, farming theme
+- **Idle Miner Tycoon** - F2P with heavy IAP
+
+**Our Advantage**: Premium with no IAP, career/status ladder narrative, meeting real-world figures, strategic depth without F2P manipulation.
