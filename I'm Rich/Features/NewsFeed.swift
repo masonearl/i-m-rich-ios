@@ -35,6 +35,18 @@ struct NewsItem: Identifiable {
             case .economy: return .orange
             }
         }
+        
+        var icon: String {
+            switch self {
+            case .breaking: return "🔴"
+            case .markets: return "📈"
+            case .personal: return "👤"
+            case .rumor: return "💬"
+            case .weather: return "🌤️"
+            case .tech: return "💻"
+            case .economy: return "💰"
+            }
+        }
     }
 }
 

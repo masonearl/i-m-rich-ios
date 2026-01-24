@@ -274,6 +274,8 @@ let allLessons: [MiniLesson] = [
 
 // MARK: - Education Manager
 class EducationManager: ObservableObject {
+    static let shared = EducationManager()
+    
     @Published var lessons: [MiniLesson] {
         didSet { save() }
     }
@@ -283,7 +285,11 @@ class EducationManager: ObservableObject {
     @Published var currentLesson: MiniLesson?
     @Published var showingQuiz = false
     
-    init() {
+    var completedLessonIds: [String] {
+        lessons.filter { $0.completed }.map { $0.id }
+    }
+    
+    private init() {
         if let data = UserDefaults.standard.data(forKey: "lessons"),
            let decoded = try? JSONDecoder().decode([MiniLesson].self, from: data) {
             self.lessons = decoded
@@ -311,6 +317,11 @@ class EducationManager: ObservableObject {
         // Award literacy points based on score
         let pointsEarned = score * 5
         financialLiteracyScore += pointsEarned
+    }
+    
+    func markLessonCompleted(_ lessonId: String) {
+        guard let index = lessons.firstIndex(where: { $0.id == lessonId }) else { return }
+        lessons[index].completed = true
     }
     
     private func save() {

@@ -364,6 +364,7 @@ extension Color {
 // MARK: - Theme Settings View
 struct ThemeSettingsView: View {
     @ObservedObject var themeManager = ThemeManager.shared
+    @ObservedObject var hapticManager = HapticManager.shared
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -374,7 +375,7 @@ struct ThemeSettingsView: View {
                 VStack(spacing: 24) {
                     // Header
                     HStack {
-                        Text("Customization")
+                        Text("Settings")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundColor(.white)
                         Spacer()
@@ -384,6 +385,29 @@ struct ThemeSettingsView: View {
                                 .foregroundColor(.gray)
                         }
                     }
+                    
+                    // Feedback Settings Section
+                    sectionHeader("FEEDBACK")
+                    
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Haptic Feedback")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("Vibrations when tapping and for events")
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                        Toggle("", isOn: $hapticManager.hapticsEnabled)
+                            .labelsHidden()
+                            .tint(themeManager.currentTheme.accentColor)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white.opacity(0.05))
+                    )
                     
                     // Themes Section
                     sectionHeader("THEMES")

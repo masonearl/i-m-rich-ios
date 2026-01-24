@@ -177,6 +177,8 @@ let loginRewards: [LoginReward] = [
 
 // MARK: - Daily System Manager
 class DailySystemManager: ObservableObject {
+    static let shared = DailySystemManager()
+    
     @Published var loginStreak: Int {
         didSet { save() }
     }
@@ -266,8 +268,10 @@ class DailySystemManager: ObservableObject {
     func claimLoginReward(game: GameState) {
         guard let reward = currentLoginReward else { return }
         
-        game.cash += reward.cashReward
-        game.totalEarned += reward.cashReward
+        // Scale login rewards to current wealth level
+        let scaledReward = game.scaleReward(reward.cashReward)
+        game.cash += scaledReward
+        game.totalEarned += scaledReward
         game.statusPoints += reward.statusReward
         
         // Handle special rewards
@@ -434,8 +438,10 @@ class DailySystemManager: ObservableObject {
         guard todaysChallenges[index].completed && !todaysChallenges[index].claimed else { return }
         
         let challenge = todaysChallenges[index]
-        game.cash += challenge.rewardCash
-        game.totalEarned += challenge.rewardCash
+        // Scale rewards to current wealth level
+        let scaledReward = game.scaleReward(challenge.rewardCash)
+        game.cash += scaledReward
+        game.totalEarned += scaledReward
         game.statusPoints += challenge.rewardStatus
         
         todaysChallenges[index].claimed = true
@@ -447,8 +453,10 @@ class DailySystemManager: ObservableObject {
         guard var goal = weeklyGoal else { return }
         guard goal.completed && !goal.claimed else { return }
         
-        game.cash += goal.rewardCash
-        game.totalEarned += goal.rewardCash
+        // Scale rewards to current wealth level
+        let scaledReward = game.scaleReward(goal.rewardCash)
+        game.cash += scaledReward
+        game.totalEarned += scaledReward
         game.statusPoints += goal.rewardStatus
         
         goal.claimed = true
@@ -481,6 +489,16 @@ class DailySystemManager: ObservableObject {
         dailyEarnedToday = 0
         dailyInvestedToday = 0
         lastChallengeDate = nil
+    }
+    
+    func resetForPrestige() {
+        // Keep login streak (it's real-world based)
+        // Reset daily progress
+        dailyTapsToday = 0
+        dailyEarnedToday = 0
+        dailyInvestedToday = 0
+        // Regenerate challenges
+        generateDailyChallenges()
     }
 }
 
@@ -554,21 +572,28 @@ struct DailyChallengesView: View {
             
             Spacer()
             
-            if challenge.completed && !challenge.claimed {
-                Button(action: {
-                    dailySystem.claimChallengeReward(index: index, game: game)
-                }) {
-                    Text("Claim")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(accentColor)
-                        .cornerRadius(8)
-                }
-            } else if challenge.claimed {
-                Image(systemName: "checkmark.circle.fill")
+            VStack(alignment: .trailing, spacing: 4) {
+                // Show scaled reward
+                Text("+\(game.formatCompact(game.scaleReward(challenge.rewardCash)))")
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundColor(accentColor)
+                
+                if challenge.completed && !challenge.claimed {
+                    Button(action: {
+                        dailySystem.claimChallengeReward(index: index, game: game)
+                    }) {
+                        Text("Claim")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(accentColor)
+                            .cornerRadius(8)
+                    }
+                } else if challenge.claimed {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(accentColor)
+                }
             }
         }
         .padding()
@@ -603,22 +628,29 @@ struct DailyChallengesView: View {
                 
                 Spacer()
                 
-                if goal.completed && !goal.claimed {
-                    Button(action: {
-                        dailySystem.claimWeeklyReward(game: game)
-                    }) {
-                        Text("Claim")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.purple)
-                            .cornerRadius(8)
-                    }
-                } else {
-                    Text("\(Int(goal.progress * 100))%")
-                        .font(.system(size: 14, weight: .bold))
+                VStack(alignment: .trailing, spacing: 4) {
+                    // Show scaled reward
+                    Text("+\(game.formatCompact(game.scaleReward(goal.rewardCash)))")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.purple)
+                    
+                    if goal.completed && !goal.claimed {
+                        Button(action: {
+                            dailySystem.claimWeeklyReward(game: game)
+                        }) {
+                            Text("Claim")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.purple)
+                                .cornerRadius(8)
+                        }
+                    } else {
+                        Text("\(Int(goal.progress * 100))%")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.purple)
+                    }
                 }
             }
             
@@ -650,6 +682,7 @@ struct DailyChallengesView: View {
 
 // MARK: - Login Reward View
 struct LoginRewardView: View {
+    @ObservedObject var game: GameState
     let reward: LoginReward
     let streak: Int
     let onClaim: () -> Void
@@ -673,7 +706,7 @@ struct LoginRewardView: View {
             
             VStack(spacing: 8) {
                 if reward.cashReward > 0 {
-                    Text("+$\(Int(reward.cashReward))")
+                    Text("+\(game.formatCompact(game.scaleReward(reward.cashReward)))")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(Color(red: 0.4, green: 0.7, blue: 0.4))
                 }

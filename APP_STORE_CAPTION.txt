@@ -1,55 +1,78 @@
-APP NAME: "Wealth Forge"
+APP NAME: "Life of Wealth"
 
-SUBTITLE: "From Hustle to Empire"
+SUBTITLE: "Money is just the beginning."
 
-TAGLINE: "Build your fortune. Choose your path. Shape your legacy."
+TAGLINE: "What does a wealthy life actually look like? You decide."
 
 PRICE: $2.99
 
 DESCRIPTION:
-Wealth Forge is an addictive strategy idle game where you build your financial empire from nothing. Inspired by Universal Paperclips, this multi-phase wealth simulator lets you make real strategic decisions as you climb from broke to billionaire.
+Life of Wealth is an addictive life simulation strategy game where every decision shapes not just your bank account, but your entire life. Build financial empires, but ask yourself: at what cost?
 
-START WITH NOTHING
-Tap to hustle. Every tap earns cash. Build your streak for massive multipliers. This is where legends begin.
+FIVE DIMENSIONS OF WEALTH
+True wealth isn't just money. Track and balance five dimensions of life:
+- Financial (Cash, investments, net worth)
+- Relationships (Family, friends, network depth)
+- Experiences (Travel, adventures, memories)
+- Health (Stress levels, work-life balance)
+- Legacy (Impact, philanthropy, what you leave behind)
 
-CHOOSE YOUR PATH
-Pick your career: Tech, Finance, Creator, or Trades. Each path offers unique bonuses, promotions, and meeting opportunities. Work your way from Junior Developer to CEO, from Analyst to Hedge Fund Legend.
+MAKE MEANINGFUL CHOICES
+Every decision has real weight:
+"Work overtime for a promotion?" → +Financial, -Health, -Relationships
+"Take a family vacation?" → +Relationships, +Experiences, -Financial
+"Grind through your 20s?" → +Financial, but what did you miss?
 
-INVEST STRATEGICALLY
-Grow your wealth through smart investments. Start with savings accounts and index funds, then graduate to stocks, crypto, real estate, and eventually venture capital and private equity. Balance risk and reward.
+BUILD A FAMILY
+Date, marry, and raise children. Each family member has their own personality:
+- Supportive partners boost relationships
+- Ambitious partners bring dual income
+- Children need your time and attention
+- Family events test your priorities
 
-SEIZE OPPORTUNITIES
-Random opportunity cards appear with calculated risks. Take the hot stock tip? Accept the acquisition offer? The choice is yours - but choose wisely.
+CHOOSE YOUR FACTION
+Align with different networks to unlock unique opportunities:
+- Corporate: Stability, hierarchy, steady growth
+- Startup/Tech: High risk, high reward
+- Old Money: Connections and status
+- Creator: Audience-powered volatility
 
-UNLOCK NEW PHASES
-Progress through four distinct phases, each revealing new mechanics:
-- Phase 1: HUSTLE - Tap, upgrade, and build your foundation
-- Phase 2: CAREER & LEVERAGE - Choose your path, get promoted, use debt strategically  
-- Phase 3: PORTFOLIO ENGINE - Launch products, diversify investments, automate income
-- Phase 4: LEGACY & SCALE - Build your empire, influence the world, meet global leaders
+MULTIPLE ENDINGS
+Your life's choices determine your legacy:
+- The Tycoon: Billions, but died alone
+- Balanced Life: Not the richest, but fulfilled
+- Legacy Builder: Changed lives, built something lasting
+- Family First: Rich in love, surrounded by generations
+- Adventure Seeker: Passport full, stories legendary
+- And more...
 
-CLIMB THE STATUS LADDER
-Earn status points through promotions and achievements. Unlock meetings with project managers, then directors, then CEOs. Eventually, Tim Cook wants your advice. Elon Musk wants to collaborate. The President wants to meet you.
+PRESTIGE SYSTEM
+When your life ends, start again with the wisdom you gained. Different endings unlock different bonuses for your next life. How many lives will you live? What will you learn?
 
-LAUNCH YOUR PRODUCT
-In Phase 3, choose a product to bring to market. Mobile app? SaaS platform? Hardware startup? Pick your budget, roll the dice, and see if you've built the next unicorn.
+DEEP STRATEGIC GAMEPLAY
+- Energy system forces prioritization
+- Career paths with 8 promotion levels each
+- 14+ investment types from savings to venture capital
+- Random opportunities with calculated risks
+- Products to launch and scale
+- VIP contacts from managers to world leaders
 
-NO ADS. NO GRINDING. PURE STRATEGY.
-This is a premium game with no in-app purchases. Pay once, play forever. No paywalls, no timers, no manipulation - just strategic depth and satisfying progression.
+NO ADS. NO GRINDING. PURE MEANING.
+Premium game with no in-app purchases. Pay once, play forever. No paywalls, no timers - just meaningful choices and philosophical depth.
 
 FEATURES:
-- 4 distinct game phases with expanding mechanics
-- 4 unique career paths with 8 roles each
-- 14+ investment types from savings to venture capital
-- 12+ opportunity cards with risk/reward decisions
-- 20+ upgrades across skills, tools, network, and lifestyle
-- 6 products to launch and scale
-- 12+ VIP contacts to meet, from managers to world leaders
-- Streak system with up to 20x multipliers
-- Passive income that grows while you're away
+- 5 wealth dimensions to balance
+- 4 factions with reputation systems
+- Detailed family simulation with dating, marriage, and children
+- 7 unique life endings based on your choices
+- Prestige system with ending-based bonuses
+- 4 career paths with 8 roles each
+- Energy management for strategic action economy
+- End-of-life reflection questions
+- Multiple lives with carried wisdom
 - Beautiful dark UI optimized for one-hand play
 - No ads, ever
 
-Build your wealth. Make your choices. Forge your legacy.
+Build your wealth. Choose your life. What matters most?
 
-KEYWORDS: idle game, clicker, strategy, wealth simulator, incremental game, business tycoon, money game, Universal Paperclips, investment game, career simulator
+KEYWORDS: life simulation, strategy game, wealth simulator, idle game, clicker, choices matter, family simulation, incremental game, philosophical game, prestige system, multiple endings
