@@ -1152,6 +1152,8 @@ struct CompactUpgradeCard: View {
             return "+\(Int(bonus * 100))% invest"
         case .statusBonus(let status):
             return "+\(status) status"
+        case .luxuryFlex(let status, let upkeep):
+            return "+\(status) ⚡ -$\(Int(upkeep))/s"
         }
     }
     
@@ -1162,6 +1164,7 @@ struct CompactUpgradeCard: View {
         case .opportunityBonus: return .yellow
         case .investmentBonus: return .purple
         case .statusBonus: return .blue
+        case .luxuryFlex: return .orange
         }
     }
     
