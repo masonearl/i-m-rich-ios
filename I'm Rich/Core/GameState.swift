@@ -231,6 +231,9 @@ class GameState: ObservableObject {
         // Apply synergy bonus
         income *= synergyManager.getMultiplier(for: .passiveIncome)
         
+        // Apply company understaffing penalty - understaffed companies make less money!
+        income *= CompanyManager.shared.understaffingPenalty
+        
         return income
     }
     
@@ -848,14 +851,64 @@ class GameState: ObservableObject {
         // ═══════════════════════════════════════════════════════════
         
         // ═══════════════════════════════════════════════════════════
-        // DEPARTMENT CONSEQUENCES - HR Decay Check
+        // COMPANY HEALTH - Payroll, Staffing, & Decay
+        // Players MUST hire employees and pay salaries!
         // ═══════════════════════════════════════════════════════════
         
-        let hrDecay = CompanyManager.shared.applyHRDecay()
-        if hrDecay > 0 {
+        let companyManager = CompanyManager.shared
+        
+        // Process payroll (employees cost money!)
+        let payroll = companyManager.annualPayroll
+        if payroll > 0 {
+            if cash >= payroll {
+                cash -= payroll
+                NewsFeedManager.shared.addNews(
+                    category: .personal,
+                    headline: "💼 Payroll paid: \(formatCompact(payroll)) for \(companyManager.state.totalEmployees) employees"
+                )
+            } else {
+                // Can't pay employees - they quit and company suffers!
+                let shortfall = payroll - cash
+                cash = 0
+                
+                // Fire employees you can't pay
+                let firedCount = max(1, companyManager.state.totalEmployees / 4)
+                NewsFeedManager.shared.addNews(
+                    category: .personal,
+                    headline: "🚨 Payroll crisis! Can't pay employees. \(firedCount) staff quit. Shortfall: \(formatCompact(shortfall))"
+                )
+            }
+        }
+        
+        // Check staffing levels
+        let status = companyManager.staffingStatus
+        if companyManager.isUnderstaffed {
             NewsFeedManager.shared.addNews(
                 category: .personal,
-                headline: "⚠️ No HR department! Company culture suffering. Valuation down 15% (-\(formatCompact(hrDecay)))"
+                headline: "\(status.icon) \(status.message) - Need \(companyManager.requiredEmployees) employees, have \(companyManager.state.totalEmployees)"
+            )
+        }
+        
+        // Process company health (decay, understaffing penalties)
+        let (_, decay, failed) = companyManager.processYearlyCompanyHealth()
+        
+        if failed {
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "💀 COMPANY CRISIS! Severely understaffed - operations collapsing! Lost \(formatCompact(decay)) in valuation"
+            )
+        } else if decay > 0 {
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "⚠️ Company health declining. Valuation down \(formatCompact(decay)) - hire more staff!"
+            )
+        }
+        
+        // Show hiring voucher reminder if they have vouchers
+        if companyManager.state.departmentState.totalVouchers > 0 {
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "🎫 Reminder: You have \(companyManager.state.departmentState.totalVouchers) hiring vouchers! Use them to hire at 50% off."
             )
         }
         
@@ -1349,19 +1402,20 @@ class GameState: ObservableObject {
         }
         
         // ═══════════════════════════════════════════════════════════
-        // COMPANY BENEFITS - Apply employee grants, industry unlocks, etc.
+        // COMPANY BENEFITS - Contacts give VOUCHERS (hiring discounts), not free employees!
+        // Players must still hire and pay salaries - this just makes it cheaper
         // ═══════════════════════════════════════════════════════════
         
         if let benefit = contact.companyBenefit {
-            // Add employees to departments
-            for (deptRaw, count) in benefit.employeeGrant {
-                if let dept = Department(rawValue: deptRaw) {
-                    CompanyManager.shared.addEmployees(department: dept, count: count)
-                    NewsFeedManager.shared.addNews(
-                        category: .personal,
-                        headline: "🤝 \(contact.name) connected you with \(count) \(dept.rawValue) employees!"
-                    )
-                }
+            // Add HIRING VOUCHERS (50% off hiring cost) - NOT free employees!
+            if !benefit.hiringVouchers.isEmpty {
+                CompanyManager.shared.addHiringVouchers(benefit.hiringVouchers)
+                let totalVouchers = benefit.hiringVouchers.values.reduce(0, +)
+                let deptNames = benefit.hiringVouchers.keys.joined(separator: ", ")
+                NewsFeedManager.shared.addNews(
+                    category: .personal,
+                    headline: "🎫 \(contact.name) gave you \(totalVouchers) hiring voucher(s) for \(deptNames)! (50% off hiring)"
+                )
             }
             
             // Unlock industry

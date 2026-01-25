@@ -69,11 +69,16 @@ enum Department: String, Codable, CaseIterable, Identifiable {
 
 // MARK: - Department State
 struct DepartmentState: Codable {
-    var employees: [String: Int] = [:]  // Department rawValue -> count
-    var lastHRCheck: Int = 0  // Game year of last HR check
+    var employees: [String: Int] = [:]       // Department rawValue -> count
+    var hiringVouchers: [String: Int] = [:]  // Department rawValue -> voucher count (50% off)
+    var lastHRCheck: Int = 0                 // Game year of last HR check
     
     func getCount(for department: Department) -> Int {
         employees[department.rawValue] ?? 0
+    }
+    
+    func getVouchers(for department: Department) -> Int {
+        hiringVouchers[department.rawValue] ?? 0
     }
     
     mutating func addEmployee(to department: Department, count: Int = 1) {
@@ -81,8 +86,24 @@ struct DepartmentState: Codable {
         employees[department.rawValue] = current + count
     }
     
+    mutating func addVouchers(to department: Department, count: Int) {
+        let current = hiringVouchers[department.rawValue] ?? 0
+        hiringVouchers[department.rawValue] = current + count
+    }
+    
+    mutating func useVoucher(for department: Department) -> Bool {
+        let current = hiringVouchers[department.rawValue] ?? 0
+        guard current > 0 else { return false }
+        hiringVouchers[department.rawValue] = current - 1
+        return true
+    }
+    
     var totalDepartmentEmployees: Int {
         employees.values.reduce(0, +)
+    }
+    
+    var totalVouchers: Int {
+        hiringVouchers.values.reduce(0, +)
     }
 }
 
@@ -423,6 +444,152 @@ class CompanyManager: ObservableObject {
         case .hr: return 1.0            // Handled separately via decay
         case .finance: return 1.2       // Pay 20% more taxes
         }
+    }
+    
+    // MARK: - Staffing Requirements & Payroll
+    
+    /// Calculate required employees based on company valuation
+    /// Higher valuation = more staff needed to maintain it
+    var requiredEmployees: Int {
+        switch state.companyValuation {
+        case 0: return 0
+        case 0..<100_000: return 1
+        case 100_000..<500_000: return 3
+        case 500_000..<1_000_000: return 5
+        case 1_000_000..<5_000_000: return 10
+        case 5_000_000..<10_000_000: return 20
+        case 10_000_000..<50_000_000: return 40
+        case 50_000_000..<100_000_000: return 75
+        case 100_000_000..<500_000_000: return 150
+        case 500_000_000..<1_000_000_000: return 300
+        case 1_000_000_000..<10_000_000_000: return 500
+        default: return 1000
+        }
+    }
+    
+    /// Current staffing level as a percentage (100% = fully staffed)
+    var staffingLevel: Double {
+        guard requiredEmployees > 0 else { return 1.0 }
+        return min(1.5, Double(state.totalEmployees) / Double(requiredEmployees))
+    }
+    
+    /// Is the company understaffed?
+    var isUnderstaffed: Bool {
+        staffingLevel < 0.75
+    }
+    
+    /// Is the company critically understaffed? (company will fail)
+    var isCriticallyUnderstaffed: Bool {
+        staffingLevel < 0.25 && requiredEmployees >= 5
+    }
+    
+    /// Get staffing status message
+    var staffingStatus: (message: String, color: String, icon: String) {
+        switch staffingLevel {
+        case 1.0...:
+            return ("Fully Staffed", "green", "✅")
+        case 0.75..<1.0:
+            return ("Slightly Understaffed", "yellow", "⚠️")
+        case 0.5..<0.75:
+            return ("Understaffed - Revenue Impacted", "orange", "🔶")
+        case 0.25..<0.5:
+            return ("Severely Understaffed - Company Failing", "red", "🚨")
+        default:
+            return ("CRITICAL - Company Collapsing!", "red", "💀")
+        }
+    }
+    
+    /// Calculate annual payroll cost (employees cost money!)
+    var annualPayroll: Double {
+        var total: Double = 0
+        for dept in Department.allCases {
+            let count = getDepartmentCount(dept)
+            total += Double(count) * dept.baseSalary
+        }
+        // Add legacy employee costs
+        total += state.totalPayroll
+        return total
+    }
+    
+    /// Get the understaffing revenue penalty multiplier
+    var understaffingPenalty: Double {
+        switch staffingLevel {
+        case 1.0...: return 1.0      // No penalty
+        case 0.75..<1.0: return 0.9  // 10% revenue loss
+        case 0.5..<0.75: return 0.6  // 40% revenue loss
+        case 0.25..<0.5: return 0.3  // 70% revenue loss
+        default: return 0.1          // 90% revenue loss - company failing
+        }
+    }
+    
+    /// Process yearly company health - call at end of each game year
+    /// Returns: (payrollCost, valuationLoss, isCompanyFailed)
+    func processYearlyCompanyHealth() -> (payroll: Double, decay: Double, failed: Bool) {
+        var totalDecay: Double = 0
+        
+        // 1. Apply HR decay if no HR
+        let hrDecay = applyHRDecay()
+        totalDecay += hrDecay
+        
+        // 2. Apply understaffing decay
+        if isUnderstaffed {
+            let staffingDecay = state.companyValuation * (1.0 - staffingLevel) * 0.25
+            state.companyValuation = max(0, state.companyValuation - staffingDecay)
+            totalDecay += staffingDecay
+        }
+        
+        // 3. Check for company failure
+        let failed = isCriticallyUnderstaffed && state.companyValuation > 0
+        if failed {
+            // Company fails - massive valuation loss
+            let failureLoss = state.companyValuation * 0.5
+            state.companyValuation = max(0, state.companyValuation - failureLoss)
+            totalDecay += failureLoss
+        }
+        
+        return (annualPayroll, totalDecay, failed)
+    }
+    
+    // MARK: - Hiring with Vouchers
+    
+    /// Add hiring vouchers from a contact
+    func addHiringVouchers(_ vouchers: [String: Int]) {
+        for (deptName, count) in vouchers {
+            if let dept = Department(rawValue: deptName) {
+                state.departmentState.addVouchers(to: dept, count: count)
+            }
+        }
+    }
+    
+    /// Get voucher count for a department
+    func getVoucherCount(_ department: Department) -> Int {
+        state.departmentState.getVouchers(for: department)
+    }
+    
+    /// Get hiring cost for a department (50% off with voucher)
+    func getHiringCost(_ department: Department) -> Double {
+        let hasVoucher = getVoucherCount(department) > 0
+        return hasVoucher ? department.hireCost * 0.5 : department.hireCost
+    }
+    
+    /// Hire an employee with cost (uses voucher if available)
+    func hireDepartmentEmployeeWithCost(_ department: Department, cash: inout Double) -> Bool {
+        let cost = getHiringCost(department)
+        guard cash >= cost else { return false }
+        
+        let tier = getCompanyTier()
+        let max = department.maxEmployees(companyTier: tier)
+        let current = getDepartmentCount(department)
+        guard current < max else { return false }
+        
+        // Use voucher if available
+        _ = state.departmentState.useVoucher(for: department)
+        
+        // Deduct cost and hire
+        cash -= cost
+        state.departmentState.addEmployee(to: department)
+        updateValuation()
+        return true
     }
     
     private func updateValuation() {

@@ -579,17 +579,19 @@ struct Housing: Codable {
 }
 
 // MARK: - Company Benefit (from Contacts)
+// Changed: Contacts now give HIRING VOUCHERS (discounts), not free employees!
+// Players must still hire and pay salaries - contacts just make it cheaper
 struct CompanyBenefit: Codable {
-    var employeeGrant: [String: Int] = [:]  // Department rawValue -> count
-    var industryUnlock: String? = nil       // Industry rawValue to unlock
+    var hiringVouchers: [String: Int] = [:]  // Department rawValue -> voucher count (50% off hiring)
+    var industryUnlock: String? = nil        // Industry rawValue to unlock
     var tradeDealValue: Double = 0
     var capitalRaised: Double = 0
-    var productSuccessBonus: Double = 0     // Temporary boost to product success
+    var productSuccessBonus: Double = 0      // Temporary boost to product success
     
-    /// Helper to set employees by department
+    /// Helper to set hiring vouchers by department (contacts give discounts, not free hires)
     static func employees(_ grants: [String: Int]) -> CompanyBenefit {
         var benefit = CompanyBenefit()
-        benefit.employeeGrant = grants
+        benefit.hiringVouchers = grants
         return benefit
     }
     
@@ -602,7 +604,7 @@ struct CompanyBenefit: Codable {
         productBonus: Double = 0
     ) -> CompanyBenefit {
         CompanyBenefit(
-            employeeGrant: employees,
+            hiringVouchers: employees,
             industryUnlock: industry,
             tradeDealValue: tradeDeal,
             capitalRaised: capital,
