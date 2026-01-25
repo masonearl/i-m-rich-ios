@@ -930,38 +930,128 @@ struct ZonedGameView: View {
     }
     
     var companyOverview: some View {
-        VStack(spacing: 12) {
+        let cm = CompanyManager.shared
+        let staffingPercent = Int(cm.staffingLevel * 100)
+        
+        return VStack(spacing: 12) {
+            // Header row
             HStack {
                 Text("🏢")
                     .font(.system(size: 24))
-                VStack(alignment: .leading) {
-                    Text(CompanyManager.shared.state.name)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(cm.state.name)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
-                    Text("\(CompanyManager.shared.state.totalEmployees) employees")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
+                    HStack(spacing: 4) {
+                        Text(cm.state.companyTierIcon)
+                            .font(.system(size: 10))
+                        Text(cm.state.companyTier)
+                            .font(.system(size: 10))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
                 }
                 Spacer()
-                VStack(alignment: .trailing) {
+                VStack(alignment: .trailing, spacing: 2) {
                     Text("Valuation")
                         .font(.system(size: 9))
-                        .foregroundColor(.gray)
-                    Text(game.formatCompact(CompanyManager.shared.state.companyValuation))
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.purple)
+                        .foregroundColor(AppColors.textMuted)
+                    Text(game.formatCompact(cm.state.companyValuation))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(AppColors.purple)
                 }
+            }
+            
+            Divider().background(AppColors.border)
+            
+            // Stats grid
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                // Employees
+                companyStatCell(
+                    icon: "👥",
+                    label: "STAFF",
+                    value: "\(cm.state.totalEmployees)/\(cm.requiredEmployees)",
+                    color: cm.isUnderstaffed ? AppColors.warning : AppColors.mattGreen
+                )
+                
+                // Staffing Level
+                companyStatCell(
+                    icon: staffingPercent >= 100 ? "✅" : "⚠️",
+                    label: "STAFFING",
+                    value: "\(min(staffingPercent, 150))%",
+                    color: cm.isUnderstaffed ? AppColors.warning : AppColors.mattGreen
+                )
+                
+                // Annual Payroll
+                companyStatCell(
+                    icon: "💰",
+                    label: "PAYROLL/YR",
+                    value: game.formatCompact(cm.annualPayroll),
+                    color: AppColors.textSecondary
+                )
+            }
+            
+            // Department breakdown (compact)
+            HStack(spacing: 6) {
+                ForEach(Department.allCases, id: \.self) { dept in
+                    let count = cm.getDepartmentCount(dept)
+                    HStack(spacing: 2) {
+                        Text(dept.icon)
+                            .font(.system(size: 10))
+                        Text("\(count)")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(count > 0 ? .white : AppColors.textMuted)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule().fill(count > 0 ? AppColors.surfaceLight : Color.clear)
+                    )
+                }
+            }
+            
+            // Staffing warning if needed
+            if cm.isUnderstaffed {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(AppColors.warning)
+                    Text(cm.staffingStatus.message)
+                        .font(.system(size: 10))
+                        .foregroundColor(AppColors.warning)
+                }
+                .padding(8)
+                .frame(maxWidth: .infinity)
+                .background(AppColors.warning.opacity(0.15))
+                .cornerRadius(8)
             }
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color.purple.opacity(0.1))
+                .fill(AppColors.cardBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+                        .stroke(AppColors.purple.opacity(0.3), lineWidth: 1)
                 )
         )
+    }
+    
+    private func companyStatCell(icon: String, label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 2) {
+            HStack(spacing: 2) {
+                Text(icon)
+                    .font(.system(size: 8))
+                Text(label)
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundColor(AppColors.textMuted)
+            }
+            Text(value)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(color)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(AppColors.surfaceLight)
+        .cornerRadius(6)
     }
     
     var startCompanyPrompt: some View {
