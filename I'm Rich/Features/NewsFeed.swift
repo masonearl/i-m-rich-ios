@@ -155,14 +155,18 @@ class NewsFeedManager: ObservableObject {
     
     private func startTimers() {
         // Generate new headlines periodically
-        newsTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        let newsT = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
             self?.addRandomHeadline()
         }
+        RunLoop.main.add(newsT, forMode: .common)
+        newsTimer = newsT
         
         // Rotate displayed headline
-        rotateTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: true) { [weak self] _ in
+        let rotateT = Timer(timeInterval: 8, repeats: true) { [weak self] _ in
             self?.rotateHeadline()
         }
+        RunLoop.main.add(rotateT, forMode: .common)
+        rotateTimer = rotateT
     }
     
     func addRandomHeadline() {

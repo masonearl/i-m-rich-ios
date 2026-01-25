@@ -626,13 +626,21 @@ class GameState: ObservableObject {
     // MARK: - Game Loop
     
     func startGameLoop() {
-        gameTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        // Create timer for main game loop (0.1s interval)
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
             self?.tick()
         }
+        // Add to .common mode so it continues during scrolling
+        RunLoop.main.add(timer, forMode: .common)
+        gameTimer = timer
         
-        opportunityTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        // Create timer for opportunity generation (30s interval)
+        let oppTimer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
             self?.generateOpportunity()
         }
+        // Also add to .common mode
+        RunLoop.main.add(oppTimer, forMode: .common)
+        opportunityTimer = oppTimer
     }
     
     // Track game day for daily sales reset (1 game week = ~5.77 real seconds)

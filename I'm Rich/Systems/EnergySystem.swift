@@ -130,9 +130,12 @@ class EnergyManager: ObservableObject {
     
     // MARK: - Regen Timer
     private func startRegenTimer() {
-        regenTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.regenerateEnergy()
         }
+        // Add to .common mode so it continues during scrolling
+        RunLoop.main.add(timer, forMode: .common)
+        regenTimer = timer
     }
     
     private func regenerateEnergy() {
