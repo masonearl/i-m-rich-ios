@@ -1584,68 +1584,9 @@ struct ZonedGameView: View {
     
     var familySection: some View {
         VStack(spacing: 12) {
-            // Header
-            HStack {
-                Text("💕")
-                Text("RELATIONSHIPS")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.white)
-                    .tracking(1.5)
-                Spacer()
-                Text(familyManager.state.relationshipStatus)
-                    .font(.system(size: 10))
-                    .foregroundColor(AppColors.textSecondary)
-            }
-            
-            // Relationship Status
-            if familyManager.state.isMarried, let partner = familyManager.state.partner {
-                // Married view
-                marriedPartnerView(partner)
-                
-                // Have kids option
-                if lifecycle.currentAge >= 28 && familyManager.state.children.count < 3 {
-                    Button(action: { showHaveKidAlert = true }) {
-                        HStack {
-                            Text("👶")
-                            Text("Have a Child")
-                                .font(.system(size: 12, weight: .bold))
-                            Spacer()
-                            Text("$50K")
-                                .font(.system(size: 10))
-                                .foregroundColor(game.cash >= 50000 ? AppColors.mattGreen : AppColors.warning)
-                        }
-                        .foregroundColor(.white)
-                        .padding(12)
-                        .background(AppColors.surfaceLight)
-                        .cornerRadius(10)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(game.cash < 50000)
-                }
-                
-            } else if let dating = familyManager.state.currentlyDating {
-                // Currently dating view
-                datingPartnerView(dating)
-                
-            } else if familyManager.state.isReadyToDate {
-                // Ready to date - show pool
-                datingPoolSection
-                
-            } else if lifecycle.currentAge >= 22 {
-                // Not ready to date yet - show prompt
-                readyToDatePrompt
-            } else {
-                // Too young
-                Text("Focus on building your career first!")
-                    .font(.system(size: 11))
-                    .foregroundColor(AppColors.textMuted)
-            }
-            
-            // Children section
-            if !familyManager.state.children.isEmpty {
-                Divider().background(AppColors.border)
-                childrenSection
-            }
+            familySectionHeader
+            familySectionContent
+            familySectionChildren
         }
         .padding(16)
         .background(
@@ -1662,12 +1603,7 @@ struct ZonedGameView: View {
         .alert("Have a Child?", isPresented: $showHaveKidAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Yes! ($50K)") {
-                if game.cash >= 50000 {
-                    game.cash -= 50000
-                    if let child = familyManager.haveChild(currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge) {
-                        NewsFeedManager.shared.addNews("👶", "NEW BABY!", "Welcome \(child.name) to the family!")
-                    }
-                }
+                handleHaveChild()
             }
         } message: {
             Text("Children bring joy but also cost money. Are you ready to start a family?")
@@ -1675,18 +1611,92 @@ struct ZonedGameView: View {
         .alert("Propose to \(familyManager.state.currentlyDating?.name ?? "Partner")?", isPresented: $showProposeAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Propose! 💍 ($25K)") {
-                if let partner = familyManager.state.currentlyDating, game.cash >= 25000 {
-                    game.cash -= 25000
-                    if familyManager.propose(to: partner, weddingBudget: 25000, currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge) {
-                        NewsFeedManager.shared.addNews("💍", "ENGAGED!", "You're getting married to \(partner.name)!")
-                        
-                        // 💎 Easter egg: Tiffany Tax!
-                        let _ = familyManager.applyTiffanyTax(game: game)
-                    }
-                }
+                handleProposal()
             }
         } message: {
             Text("Pop the question and plan the wedding!")
+        }
+    }
+    
+    private var familySectionHeader: some View {
+        HStack {
+            Text("💕")
+            Text("RELATIONSHIPS")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.white)
+                .tracking(1.5)
+            Spacer()
+            Text(familyManager.state.relationshipStatus)
+                .font(.system(size: 10))
+                .foregroundColor(AppColors.textSecondary)
+        }
+    }
+    
+    @ViewBuilder
+    private var familySectionContent: some View {
+        if familyManager.state.isMarried, let partner = familyManager.state.partner {
+            marriedPartnerView(partner)
+            haveChildButton
+        } else if let dating = familyManager.state.currentlyDating {
+            datingPartnerView(dating)
+        } else if familyManager.state.isReadyToDate {
+            datingPoolSection
+        } else if lifecycle.currentAge >= 22 {
+            readyToDatePrompt
+        } else {
+            Text("Focus on building your career first!")
+                .font(.system(size: 11))
+                .foregroundColor(AppColors.textMuted)
+        }
+    }
+    
+    @ViewBuilder
+    private var haveChildButton: some View {
+        if lifecycle.currentAge >= 28 && familyManager.state.children.count < 3 {
+            let canAffordChild = game.cash >= 50000
+            Button(action: { showHaveKidAlert = true }) {
+                HStack {
+                    Text("👶")
+                    Text("Have a Child").font(.system(size: 12, weight: .bold))
+                    Spacer()
+                    Text("$50K")
+                        .font(.system(size: 10))
+                        .foregroundColor(canAffordChild ? AppColors.mattGreen : AppColors.warning)
+                }
+                .foregroundColor(.white)
+                .padding(12)
+                .background(AppColors.surfaceLight)
+                .cornerRadius(10)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(!canAffordChild)
+        }
+    }
+    
+    @ViewBuilder
+    private var familySectionChildren: some View {
+        if !familyManager.state.children.isEmpty {
+            Divider().background(AppColors.border)
+            childrenSection
+        }
+    }
+    
+    private func handleHaveChild() {
+        if game.cash >= 50000 {
+            game.cash -= 50000
+            if let child = familyManager.haveChild(currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge) {
+                NewsFeedManager.shared.addNews("👶", "NEW BABY!", "Welcome \(child.name) to the family!")
+            }
+        }
+    }
+    
+    private func handleProposal() {
+        if let partner = familyManager.state.currentlyDating, game.cash >= 25000 {
+            game.cash -= 25000
+            if familyManager.propose(to: partner, weddingBudget: 25000, currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge) {
+                NewsFeedManager.shared.addNews("💍", "ENGAGED!", "You're getting married to \(partner.name)!")
+                let _ = familyManager.applyTiffanyTax(game: game)
+            }
         }
     }
     
@@ -4656,133 +4666,11 @@ struct ExpandCompanySheet: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Text("🏗️")
-                            .font(.system(size: 50))
-                        
-                        Text("EXPAND YOUR EMPIRE")
-                            .font(.system(size: 20, weight: .black))
-                            .foregroundColor(.white)
-                            .tracking(2)
-                        
-                        Text("Open new locations to increase revenue and capacity")
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 20)
-                    
-                    // Current stats
-                    HStack(spacing: 16) {
-                        statBox(
-                            icon: "👥",
-                            label: "Employees",
-                            value: "\(companyManager.state.totalEmployees)"
-                        )
-                        statBox(
-                            icon: "📍",
-                            label: "Locations",
-                            value: "\(companyManager.state.locations.count)"
-                        )
-                        statBox(
-                            icon: "💰",
-                            label: "Cash",
-                            value: game.formatCompact(game.cash)
-                        )
-                    }
-                    
-                    // Location types
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("CHOOSE LOCATION TYPE")
-                            .font(.caption.bold())
-                            .foregroundColor(AppColors.textMuted)
-                        
-                        if companyManager.availableLocationTypes.isEmpty {
-                            Text("Found a company first to unlock expansion options")
-                                .font(.subheadline)
-                                .foregroundColor(AppColors.textSecondary)
-                                .padding()
-                        } else {
-                            ForEach(companyManager.availableLocationTypes, id: \.type) { locType in
-                                LocationTypeRow(
-                                    type: locType.type,
-                                    name: locType.name,
-                                    cost: locType.cost,
-                                    employeesRequired: locType.employeesRequired,
-                                    canAfford: game.cash >= locType.cost,
-                                    hasEmployees: companyManager.canExpandLocation(employeesRequired: locType.employeesRequired),
-                                    isSelected: selectedType?.type == locType.type,
-                                    game: game
-                                ) {
-                                    selectedType = locType
-                                }
-                            }
-                        }
-                    }
-                    
-                    // City selection
-                    if selectedType != nil {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("CHOOSE CITY")
-                                .font(.caption.bold())
-                                .foregroundColor(AppColors.textMuted)
-                            
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                                ForEach(CompanyManager.expansionCities, id: \.self) { city in
-                                    Button(action: { selectedCity = city }) {
-                                        Text(city)
-                                            .font(.subheadline)
-                                            .foregroundColor(selectedCity == city ? .black : .white)
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 10)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .fill(selectedCity == city ? AppColors.mattGreen : AppColors.surfaceLight)
-                                            )
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Build button
-                    if let locType = selectedType {
-                        let canBuild = game.cash >= locType.cost && companyManager.canExpandLocation(employeesRequired: locType.employeesRequired)
-                        
-                        Button(action: {
-                            if canBuild {
-                                showConfirmation = true
-                            }
-                        }) {
-                            VStack(spacing: 4) {
-                                Text("BUILD \(locType.name.uppercased())")
-                                    .font(.headline.bold())
-                                Text("in \(selectedCity) for \(game.formatCompact(locType.cost))")
-                                    .font(.caption)
-                                    .foregroundColor(canBuild ? .black.opacity(0.7) : .gray)
-                            }
-                            .foregroundColor(canBuild ? .black : .gray)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(canBuild ? AppColors.mattGreen : AppColors.surfaceLight)
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .disabled(!canBuild)
-                        
-                        if !companyManager.canExpandLocation(employeesRequired: locType.employeesRequired) {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                Text("Need \(locType.employeesRequired) more employees to staff this location")
-                                    .font(.caption)
-                            }
-                            .foregroundColor(AppColors.warning)
-                        }
-                    }
+                    expandSheetHeader
+                    expandSheetStats
+                    expandLocationTypesList
+                    expandCitySelection
+                    expandBuildButton
                 }
                 .padding()
             }
@@ -4797,24 +4685,7 @@ struct ExpandCompanySheet: View {
             }
             .alert("Confirm Expansion", isPresented: $showConfirmation) {
                 Button("Cancel", role: .cancel) { }
-                Button("Build") {
-                    if let locType = selectedType {
-                        game.cash -= locType.cost
-                        _ = companyManager.addLocation(
-                            type: locType.type,
-                            name: locType.name,
-                            city: selectedCity,
-                            cost: locType.cost,
-                            maxEmployees: locType.employeesRequired * 2
-                        )
-                        NewsFeedManager.shared.addNews(
-                            "🏗️",
-                            "NEW LOCATION",
-                            "Opened \(locType.name) in \(selectedCity)!"
-                        )
-                        dismiss()
-                    }
-                }
+                Button("Build") { handleBuildLocation() }
             } message: {
                 if let locType = selectedType {
                     Text("Build \(locType.name) in \(selectedCity) for \(game.formatCompact(locType.cost))?")
@@ -4824,21 +4695,138 @@ struct ExpandCompanySheet: View {
         .preferredColorScheme(.dark)
     }
     
-    private func statBox(icon: String, label: String, value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(icon)
-                .font(.title2)
-            Text(value)
-                .font(.subheadline.bold())
+    private var expandSheetHeader: some View {
+        VStack(spacing: 8) {
+            Text("🏗️").font(.system(size: 50))
+            Text("EXPAND YOUR EMPIRE")
+                .font(.system(size: 20, weight: .black))
                 .foregroundColor(.white)
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(AppColors.textMuted)
+                .tracking(2)
+            Text("Open new locations to increase revenue and capacity")
+                .font(.subheadline)
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, 20)
+    }
+    
+    private var expandSheetStats: some View {
+        HStack(spacing: 16) {
+            expandStatBox(icon: "👥", label: "Employees", value: "\(companyManager.state.totalEmployees)")
+            expandStatBox(icon: "📍", label: "Locations", value: "\(companyManager.state.locations.count)")
+            expandStatBox(icon: "💰", label: "Cash", value: game.formatCompact(game.cash))
+        }
+    }
+    
+    private func expandStatBox(icon: String, label: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(icon).font(.title2)
+            Text(value).font(.subheadline.bold()).foregroundColor(.white)
+            Text(label).font(.caption2).foregroundColor(AppColors.textMuted)
         }
         .frame(maxWidth: .infinity)
         .padding()
         .background(AppColors.surfaceLight)
         .cornerRadius(10)
+    }
+    
+    private var expandLocationTypesList: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("CHOOSE LOCATION TYPE").font(.caption.bold()).foregroundColor(AppColors.textMuted)
+            
+            if companyManager.availableLocationTypes.isEmpty {
+                Text("Found a company first to unlock expansion options")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.textSecondary)
+                    .padding()
+            } else {
+                ForEach(companyManager.availableLocationTypes, id: \.type) { locType in
+                    LocationTypeRow(
+                        type: locType.type,
+                        name: locType.name,
+                        cost: locType.cost,
+                        employeesRequired: locType.employeesRequired,
+                        canAfford: game.cash >= locType.cost,
+                        hasEmployees: companyManager.canExpandLocation(employeesRequired: locType.employeesRequired),
+                        isSelected: selectedType?.type == locType.type,
+                        game: game
+                    ) {
+                        selectedType = locType
+                    }
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var expandCitySelection: some View {
+        if selectedType != nil {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("CHOOSE CITY").font(.caption.bold()).foregroundColor(AppColors.textMuted)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach(CompanyManager.expansionCities, id: \.self) { city in
+                        expandCityButton(city: city)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func expandCityButton(city: String) -> some View {
+        let isSelected = selectedCity == city
+        return Button(action: { selectedCity = city }) {
+            Text(city)
+                .font(.subheadline)
+                .foregroundColor(isSelected ? .black : .white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 8).fill(isSelected ? AppColors.mattGreen : AppColors.surfaceLight))
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    @ViewBuilder
+    private var expandBuildButton: some View {
+        if let locType = selectedType {
+            let canBuild = game.cash >= locType.cost && companyManager.canExpandLocation(employeesRequired: locType.employeesRequired)
+            
+            Button(action: { if canBuild { showConfirmation = true } }) {
+                VStack(spacing: 4) {
+                    Text("BUILD \(locType.name.uppercased())").font(.headline.bold())
+                    Text("in \(selectedCity) for \(game.formatCompact(locType.cost))")
+                        .font(.caption)
+                        .foregroundColor(canBuild ? .black.opacity(0.7) : .gray)
+                }
+                .foregroundColor(canBuild ? .black : .gray)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(RoundedRectangle(cornerRadius: 12).fill(canBuild ? AppColors.mattGreen : AppColors.surfaceLight))
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(!canBuild)
+            
+            if !companyManager.canExpandLocation(employeesRequired: locType.employeesRequired) {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                    Text("Need \(locType.employeesRequired) more employees to staff this location").font(.caption)
+                }
+                .foregroundColor(AppColors.warning)
+            }
+        }
+    }
+    
+    private func handleBuildLocation() {
+        guard let locType = selectedType else { return }
+        game.cash -= locType.cost
+        _ = companyManager.addLocation(
+            type: locType.type,
+            name: locType.name,
+            city: selectedCity,
+            cost: locType.cost,
+            maxEmployees: locType.employeesRequired * 2
+        )
+        NewsFeedManager.shared.addNews("🏗️", "NEW LOCATION", "Opened \(locType.name) in \(selectedCity)!")
+        dismiss()
     }
 }
 
@@ -5368,79 +5356,10 @@ struct TaxPlanTierRow: View {
     
     var body: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 12) {
-                Text(tier.icon)
-                    .font(.system(size: 28))
-                    .opacity(meetsNetWorth ? 1.0 : 0.5)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack {
-                        Text(tier.name)
-                            .font(.subheadline.bold())
-                            .foregroundColor(meetsNetWorth ? .white : AppColors.textMuted)
-                        
-                        if !meetsNetWorth {
-                            Text("🔒")
-                                .font(.caption)
-                        }
-                    }
-                    
-                    Text(tier.description)
-                        .font(.caption)
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("-\(Int(tier.taxReduction * 100))%")
-                        .font(.headline.bold())
-                        .foregroundColor(meetsNetWorth ? AppColors.mattGreen : AppColors.textMuted)
-                    
-                    Text(game.formatCompact(tier.upgradeCost))
-                        .font(.caption)
-                        .foregroundColor(canAfford ? AppColors.textSecondary : AppColors.warning)
-                }
-            }
-            
-            // Requirements
-            if !meetsNetWorth {
-                HStack {
-                    Text("Requires \(game.formatCompact(tier.netWorthRequired)) net worth")
-                        .font(.caption2)
-                        .foregroundColor(AppColors.warning)
-                    Spacer()
-                }
-            }
-            
-            // Upgrade button (only for next tier)
-            if isNextTier && meetsNetWorth {
-                Button(action: { showConfirmation = true }) {
-                    Text("Upgrade to \(tier.name)")
-                        .font(.caption.bold())
-                        .foregroundColor(canAfford ? .black : .gray)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(canAfford ? AppColors.mattGreen : AppColors.surfaceLight)
-                        )
-                }
-                .buttonStyle(PlainButtonStyle())
-                .disabled(!canAfford)
-            }
-            
-            // Annual cost note
-            if tier.annualCost > 0 {
-                HStack {
-                    Text("📅")
-                        .font(.caption2)
-                    Text("\(game.formatCompact(tier.annualCost))/year maintenance")
-                        .font(.caption2)
-                        .foregroundColor(AppColors.textMuted)
-                    Spacer()
-                }
-            }
+            tierMainRow
+            tierRequirementsRow
+            tierUpgradeButton
+            tierAnnualCostRow
         }
         .padding()
         .background(isNextTier ? AppColors.mattGreen.opacity(0.1) : AppColors.surfaceLight)
@@ -5452,12 +5371,96 @@ struct TaxPlanTierRow: View {
         .alert("Upgrade Tax Plan?", isPresented: $showConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Upgrade (\(game.formatCompact(tier.upgradeCost)))") {
-                if taxManager.upgradePlan(cash: &game.cash) {
-                    NewsFeedManager.shared.addNews("🏛️", "TAX PLAN UPGRADED", "Now saving \(Int(tier.taxReduction * 100))% on taxes with \(tier.name) plan!")
-                }
+                handleUpgrade()
             }
         } message: {
             Text("Upgrade to \(tier.name) for \(game.formatCompact(tier.upgradeCost))? This will reduce your taxes by \(Int(tier.taxReduction * 100))%.")
+        }
+    }
+    
+    private var tierMainRow: some View {
+        HStack(spacing: 12) {
+            Text(tier.icon)
+                .font(.system(size: 28))
+                .opacity(meetsNetWorth ? 1.0 : 0.5)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                tierNameRow
+                Text(tier.description).font(.caption).foregroundColor(AppColors.textSecondary)
+            }
+            
+            Spacer()
+            
+            tierStatsColumn
+        }
+    }
+    
+    private var tierNameRow: some View {
+        HStack {
+            Text(tier.name)
+                .font(.subheadline.bold())
+                .foregroundColor(meetsNetWorth ? .white : AppColors.textMuted)
+            if !meetsNetWorth {
+                Text("🔒").font(.caption)
+            }
+        }
+    }
+    
+    private var tierStatsColumn: some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text("-\(Int(tier.taxReduction * 100))%")
+                .font(.headline.bold())
+                .foregroundColor(meetsNetWorth ? AppColors.mattGreen : AppColors.textMuted)
+            Text(game.formatCompact(tier.upgradeCost))
+                .font(.caption)
+                .foregroundColor(canAfford ? AppColors.textSecondary : AppColors.warning)
+        }
+    }
+    
+    @ViewBuilder
+    private var tierRequirementsRow: some View {
+        if !meetsNetWorth {
+            HStack {
+                Text("Requires \(game.formatCompact(tier.netWorthRequired)) net worth")
+                    .font(.caption2)
+                    .foregroundColor(AppColors.warning)
+                Spacer()
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var tierUpgradeButton: some View {
+        if isNextTier && meetsNetWorth {
+            Button(action: { showConfirmation = true }) {
+                Text("Upgrade to \(tier.name)")
+                    .font(.caption.bold())
+                    .foregroundColor(canAfford ? .black : .gray)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(canAfford ? AppColors.mattGreen : AppColors.surfaceLight))
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(!canAfford)
+        }
+    }
+    
+    @ViewBuilder
+    private var tierAnnualCostRow: some View {
+        if tier.annualCost > 0 {
+            HStack {
+                Text("📅").font(.caption2)
+                Text("\(game.formatCompact(tier.annualCost))/year maintenance")
+                    .font(.caption2)
+                    .foregroundColor(AppColors.textMuted)
+                Spacer()
+            }
+        }
+    }
+    
+    private func handleUpgrade() {
+        if taxManager.upgradePlan(cash: &game.cash) {
+            NewsFeedManager.shared.addNews("🏛️", "TAX PLAN UPGRADED", "Now saving \(Int(tier.taxReduction * 100))% on taxes with \(tier.name) plan!")
         }
     }
 }
