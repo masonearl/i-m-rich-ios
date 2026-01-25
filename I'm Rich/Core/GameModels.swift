@@ -330,7 +330,7 @@ let allInvestments: [Investment] = [
     Investment(id: "amzn", name: "Amazon (AMZN)", icon: "📦", description: "E-commerce, AWS, AI - 13% avg return", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.13, volatility: 0.25, phaseUnlock: .careerLeverage),
     Investment(id: "nvda", name: "NVIDIA (NVDA)", icon: "🎮", description: "AI chips, GPUs, Data Centers - 15% avg but volatile", minInvestment: 1000, riskLevel: .high, baseReturn: 0.15, volatility: 0.50, phaseUnlock: .careerLeverage),
     Investment(id: "meta", name: "Meta (META)", icon: "👓", description: "Facebook, Instagram, VR - 14% avg return", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.14, volatility: 0.30, phaseUnlock: .careerLeverage),
-    Investment(id: "tsla", name: "Tesla (TSLA)", icon: "🚗", description: "EVs, Energy, Robotics - High risk, high reward", minInvestment: 1000, riskLevel: .extreme, baseReturn: 0.18, volatility: 0.70, phaseUnlock: .careerLeverage)
+    Investment(id: "tsla", name: "Tesla (TSLA)", icon: "🚗", description: "EVs, Energy, Robotics - High risk, high reward", minInvestment: 1000, riskLevel: .extreme, baseReturn: 0.18, volatility: 0.70, phaseUnlock: .careerLeverage),
     
     // Other Major Stocks
     Investment(id: "brk", name: "Berkshire Hathaway", icon: "🏛️", description: "Warren Buffett's empire", minInvestment: 5000, riskLevel: .low, baseReturn: 0.09, volatility: 0.18, phaseUnlock: .careerLeverage),
