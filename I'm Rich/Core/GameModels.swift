@@ -322,14 +322,15 @@ let allInvestments: [Investment] = [
     // PHASE 2 - CAREER & LEVERAGE (Individual stocks unlocked)
     // ═══════════════════════════════════════════════════════════════
     
-    // Magnificent 7 Tech Giants (realistic returns)
-    Investment(id: "aapl", name: "Apple (AAPL)", icon: "🍎", description: "iPhone, Mac, Services", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.10, volatility: 0.28, phaseUnlock: .careerLeverage),
-    Investment(id: "msft", name: "Microsoft (MSFT)", icon: "🪟", description: "Windows, Azure, AI", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.11, volatility: 0.25, phaseUnlock: .careerLeverage),
-    Investment(id: "googl", name: "Alphabet (GOOGL)", icon: "🔍", description: "Google, YouTube, Cloud", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.10, volatility: 0.30, phaseUnlock: .careerLeverage),
-    Investment(id: "amzn", name: "Amazon (AMZN)", icon: "📦", description: "E-commerce, AWS, AI", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.12, volatility: 0.35, phaseUnlock: .careerLeverage),
-    Investment(id: "nvda", name: "NVIDIA (NVDA)", icon: "🎮", description: "AI chips, GPUs, Data Centers", minInvestment: 1000, riskLevel: .high, baseReturn: 0.10, volatility: 0.55, phaseUnlock: .careerLeverage),  // BALANCED: was 0.20
-    Investment(id: "meta", name: "Meta (META)", icon: "👓", description: "Facebook, Instagram, VR", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.12, volatility: 0.40, phaseUnlock: .careerLeverage),
-    Investment(id: "tsla", name: "Tesla (TSLA)", icon: "🚗", description: "EVs, Energy, Robotics", minInvestment: 1000, riskLevel: .extreme, baseReturn: 0.10, volatility: 0.65, phaseUnlock: .careerLeverage),  // BALANCED: was 0.18
+    // Magnificent 7 Tech Giants - IMPROVED returns, REDUCED volatility for stable stocks
+    // Volatility now works as % variance: 0.20 = returns vary ±10% of base (half of volatility value)
+    Investment(id: "aapl", name: "Apple (AAPL)", icon: "🍎", description: "iPhone, Mac, Services - 11% avg return", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.11, volatility: 0.20, phaseUnlock: .careerLeverage),
+    Investment(id: "msft", name: "Microsoft (MSFT)", icon: "🪟", description: "Windows, Azure, AI - 12% avg return", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.12, volatility: 0.18, phaseUnlock: .careerLeverage),
+    Investment(id: "googl", name: "Alphabet (GOOGL)", icon: "🔍", description: "Google, YouTube, Cloud - 11% avg return", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.11, volatility: 0.22, phaseUnlock: .careerLeverage),
+    Investment(id: "amzn", name: "Amazon (AMZN)", icon: "📦", description: "E-commerce, AWS, AI - 13% avg return", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.13, volatility: 0.25, phaseUnlock: .careerLeverage),
+    Investment(id: "nvda", name: "NVIDIA (NVDA)", icon: "🎮", description: "AI chips, GPUs, Data Centers - 15% avg but volatile", minInvestment: 1000, riskLevel: .high, baseReturn: 0.15, volatility: 0.50, phaseUnlock: .careerLeverage),
+    Investment(id: "meta", name: "Meta (META)", icon: "👓", description: "Facebook, Instagram, VR - 14% avg return", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.14, volatility: 0.30, phaseUnlock: .careerLeverage),
+    Investment(id: "tsla", name: "Tesla (TSLA)", icon: "🚗", description: "EVs, Energy, Robotics - High risk, high reward", minInvestment: 1000, riskLevel: .extreme, baseReturn: 0.18, volatility: 0.70, phaseUnlock: .careerLeverage)
     
     // Other Major Stocks
     Investment(id: "brk", name: "Berkshire Hathaway", icon: "🏛️", description: "Warren Buffett's empire", minInvestment: 5000, riskLevel: .low, baseReturn: 0.09, volatility: 0.18, phaseUnlock: .careerLeverage),

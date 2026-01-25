@@ -710,33 +710,45 @@ class GameState: ObservableObject {
     static let maxNetWorth: Double = 10_000_000_000_000 // $10 trillion cap
     
     func accumulateInvestmentGains(deltaTime: TimeInterval) {
-        // Investment gains accumulate based on game time (5 min = 1 year)
-        // Volatility creates realistic ups and downs - investments can LOSE money!
+        // Investment gains accumulate based on game time (1 min = 1 year)
+        // FIXED: Returns now work as expected - $200M at 10% = ~$20M/year
         let yearFraction = deltaTime / LifeCycleConstants.secondsPerGameYear
         
         // Sanity check: if net worth exceeds cap, don't accumulate more gains
         guard netWorth < GameState.maxNetWorth else { return }
         
         for i in 0..<investments.count where investments[i].amountInvested > 0 {
-            // Get the investment's sentiment (affects returns)
-            let sentiment = InvestmentSentimentManager.shared.getSentiment(for: investments[i].id)
-            let sentimentMultiplier = sentiment.returnMultiplier
+            let investment = investments[i]
             
-            // Base annual return with sentiment
-            let baseAnnualReturn = investments[i].baseReturn * sentimentMultiplier
+            // Get the investment's sentiment (affects returns mildly)
+            let sentiment = InvestmentSentimentManager.shared.getSentiment(for: investment.id)
+            // Sentiment multiplier is now gentler (0.8 to 1.2 range instead of full range)
+            let sentimentMultiplier = 0.9 + (sentiment.returnMultiplier * 0.2)
             
-            // Apply volatility - creates realistic fluctuation
-            // Volatility of 0.5 means returns can vary by ±50% from base
-            let volatility = investments[i].volatility
-            let randomVariance = Double.random(in: -volatility...volatility)
-            let volatileReturn = baseAnnualReturn + randomVariance
+            // Base annual return (e.g., 0.10 = 10%)
+            let baseReturn = investment.baseReturn
             
-            // Calculate raw return (can be negative!)
-            let annualReturn = investments[i].amountInvested * volatileReturn
+            // Apply volatility as a PERCENTAGE of the return, not an absolute offset
+            // Volatility of 0.28 now means returns vary ±28% OF the base return
+            // e.g., 10% base with 0.28 volatility = 7.2% to 12.8% (not -18% to +38%)
+            let volatility = investment.volatility
+            let volatilityFactor = Double.random(in: (1.0 - volatility * 0.5)...(1.0 + volatility * 0.5))
             
-            // Apply multipliers
-            let marketMultiplier = marketEventManager.getMultiplier(for: investments[i].id)
-            let networkingMultiplier = getNetworkingInvestmentModifier(for: investments[i].id)
+            // Calculate actual return rate
+            var actualReturnRate = baseReturn * sentimentMultiplier * volatilityFactor
+            
+            // For extreme risk investments (negative base return), keep them risky
+            if baseReturn < 0 {
+                actualReturnRate = baseReturn * volatilityFactor  // Bad investments stay bad
+            }
+            
+            // Calculate the annual gain amount
+            // $200M at 10% = $20M per year
+            let annualGainAmount = investment.amountInvested * actualReturnRate
+            
+            // Apply bonus multipliers (these ADD to gains, not multiply them down)
+            let marketMultiplier = marketEventManager.getMultiplier(for: investment.id)
+            let networkingMultiplier = getNetworkingInvestmentModifier(for: investment.id)
             let bonusMultiplier = 1.0 + investmentBonusMultiplier
             let prestigeMultiplier = prestigeManager.legacyMultiplier
             
@@ -745,22 +757,24 @@ class GameState: ObservableObject {
             let researchBonus = 1.0 + researchManager.totalInvestmentBonus
             let synergyBonus = synergyManager.getMultiplier(for: .investmentReturns)
             
-            var gains = annualReturn * yearFraction * marketMultiplier * networkingMultiplier * bonusMultiplier * prestigeMultiplier * economicMultiplier * researchBonus * synergyBonus
+            // Combine all positive multipliers
+            let totalMultiplier = marketMultiplier * networkingMultiplier * bonusMultiplier * prestigeMultiplier * economicMultiplier * researchBonus * synergyBonus
             
-            // During contractions, volatility hurts more
+            // Calculate gains for this time slice
+            var gains = annualGainAmount * yearFraction * totalMultiplier
+            
+            // During contractions, gains are reduced (not losses amplified)
             if economicCycleManager.state.currentPhase == .contraction || economicCycleManager.state.currentPhase == .trough {
-                if gains < 0 {
-                    gains *= 1.5 // Losses are 50% worse in bad economy
-                }
+                gains *= 0.7 // 30% reduction in bad economy
             }
             
             // Cap individual investment to prevent overflow
-            let newValue = investments[i].totalValue + gains
+            let newValue = investment.totalValue + gains
             if newValue > 0 && newValue < GameState.maxNetWorth {
                 investments[i].unrealizedGains += gains
             } else if newValue <= 0 {
-                // Wipe out the investment (total loss)
-                investments[i].unrealizedGains = -investments[i].amountInvested * 0.99 // Lose 99%
+                // Investment lost - but cap the loss to prevent going negative
+                investments[i].unrealizedGains = -investment.amountInvested * 0.9 // Lose 90% max
             }
         }
     }
