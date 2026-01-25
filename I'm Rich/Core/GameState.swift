@@ -1204,14 +1204,31 @@ class GameState: ObservableObject {
     }
     
     static let tapMilestones: [Int: (title: String, message: String, emoji: String, bonusMultiplier: Double)] = [
-        1000: ("HUSTLER!", "1,000 taps! You've got the grind mentality. Keep going!", "💪", 100),
-        5000: ("GRINDER!", "5,000 taps! Your work ethic is unmatched!", "🔥", 500),
+        // Early milestones - celebrate the beginning!
+        50: ("FIRST STEPS!", "50 taps! Every empire starts with a single tap!", "👶", 5),
+        100: ("GETTING STARTED!", "100 taps! You're warming up, keep it going!", "🌱", 10),
+        250: ("PICKING UP STEAM!", "250 taps! Now you're getting the hang of it!", "💨", 25),
+        500: ("NICE HUSTLE!", "500 taps! You little hustler! The grind is paying off!", "🔥", 50),
+        750: ("ON A ROLL!", "750 taps! Nothing can slow you down now!", "🎯", 75),
+        
+        // Core milestones
+        1000: ("HUSTLER!", "1,000 taps! You've got that grind mentality. Keep going!", "💪", 100),
+        2500: ("DETERMINED!", "2,500 taps! Most people quit by now. Not you!", "🎖️", 250),
+        5000: ("GRINDER!", "5,000 taps! Your work ethic is unmatched!", "⚡", 500),
+        7500: ("UNSTOPPABLE!", "7,500 taps! You're locked in and focused!", "🔒", 750),
         10000: ("MACHINE!", "10,000 taps! You're built different!", "🤖", 1000),
-        25000: ("RELENTLESS!", "25,000 taps! Nothing can stop you!", "⚡", 2500),
+        
+        // Mid-game milestones
+        15000: ("CHAMPION!", "15,000 taps! Champions are made, not born!", "🏅", 1500),
+        25000: ("RELENTLESS!", "25,000 taps! Nothing can stop you!", "🌪️", 2500),
         50000: ("LEGENDARY!", "50,000 taps! You're in the top 1%!", "👑", 5000),
+        75000: ("ELITE!", "75,000 taps! The elite recognize their own!", "⭐", 7500),
         100000: ("IMMORTAL!", "100,000 taps! Your dedication is INSANE!", "🏆", 10000),
+        
+        // Late-game milestones
         250000: ("TRANSCENDENT!", "250,000 taps! You've achieved the impossible!", "✨", 25000),
         500000: ("GODLIKE!", "500,000 taps! Mere mortals bow before you!", "🌟", 50000),
+        750000: ("MYTHICAL!", "750,000 taps! Legends will speak of your hustle!", "🐉", 75000),
         1000000: ("MILLION TAP MASTER!", "1,000,000 TAPS! You are the ultimate hustler!", "💎", 100000)
     ]
     
