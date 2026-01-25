@@ -209,6 +209,10 @@ class GameState: ObservableObject {
             if case .passiveIncome(let amount) = upgrade.effect {
                 income += amount * 0.1  // Reduce upgrade passive income by 90%
             }
+            // Luxury items COST money (upkeep) but give status
+            if case .luxuryFlex(_, let upkeepPerSecond) = upgrade.effect {
+                income -= upkeepPerSecond  // Deduct upkeep cost!
+            }
         }
         
         // Product ongoing revenue (scaled down)
@@ -279,6 +283,28 @@ class GameState: ObservableObject {
             income += product.ongoingRevenue * 0.05  // Same scaling as passiveIncomePerSecond
         }
         return income * prestigeManager.legacyMultiplier
+    }
+    
+    /// Total luxury upkeep cost per second (yachts, jets, mansions, etc.)
+    var luxuryUpkeepPerSecond: Double {
+        var upkeep: Double = 0
+        for upgrade in upgrades where upgrade.purchased {
+            if case .luxuryFlex(_, let upkeepPerSecond) = upgrade.effect {
+                upkeep += upkeepPerSecond
+            }
+        }
+        return upkeep
+    }
+    
+    /// List of owned luxury items for display
+    var ownedLuxuryItems: [(name: String, icon: String, upkeep: Double)] {
+        upgrades.compactMap { upgrade in
+            guard upgrade.purchased else { return nil }
+            if case .luxuryFlex(_, let upkeep) = upgrade.effect {
+                return (upgrade.name, upgrade.icon, upkeep)
+            }
+            return nil
+        }
     }
     
     var availableAutoTappers: [AutoTapper] {
@@ -1344,6 +1370,15 @@ class GameState: ObservableObject {
         // Apply status bonus immediately
         if case .statusBonus(let points) = upgrades[index].effect {
             statusPoints += points
+        }
+        
+        // Luxury items give status but cost money to maintain
+        if case .luxuryFlex(let status, let upkeep) = upgrades[index].effect {
+            statusPoints += status
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "⚠️ Luxury purchase! +\(status) status but costs $\(Int(upkeep))/sec to maintain"
+            )
         }
         
         return true

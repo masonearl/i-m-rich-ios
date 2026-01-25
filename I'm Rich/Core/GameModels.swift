@@ -378,7 +378,7 @@ let allInvestments: [Investment] = [
     // Trophy Assets
     Investment(id: "sports_team", name: "Sports Team Stake", icon: "🏈", description: "Pro sports franchise", minInvestment: 50_000_000, riskLevel: .medium, baseReturn: 0.10, volatility: 0.20, phaseUnlock: .legacyScale),
     Investment(id: "media_company", name: "Media Company", icon: "📺", description: "Entertainment empire", minInvestment: 100_000_000, riskLevel: .high, baseReturn: 0.12, volatility: 0.40, phaseUnlock: .legacyScale),
-    Investment(id: "island", name: "Private Island", icon: "🏝️", description: "Exclusive real estate", minInvestment: 25_000_000, riskLevel: .medium, baseReturn: 0.04, volatility: 0.15, phaseUnlock: .legacyScale),
+    Investment(id: "island", name: "Private Island", icon: "🏝️", description: "⚠️ STATUS FLEX: Loses ~5%/year (maintenance, staff, upkeep)", minInvestment: 25_000_000, riskLevel: .medium, baseReturn: -0.05, volatility: 0.10, phaseUnlock: .legacyScale),
     
     // Mega Investments - BALANCED returns
     Investment(id: "infrastructure", name: "Infrastructure Project", icon: "🌉", description: "Bridges, roads, utilities", minInvestment: 500_000_000, riskLevel: .low, baseReturn: 0.055, volatility: 0.10, phaseUnlock: .legacyScale),
@@ -500,6 +500,7 @@ struct Upgrade: Identifiable, Codable {
         case investmentBonus(Double)
         case statusBonus(Int)
         case opportunityBonus(Double)
+        case luxuryFlex(status: Int, upkeepPerSecond: Double)  // Status boost but COSTS money!
     }
 }
 
@@ -528,13 +529,17 @@ let allUpgrades: [Upgrade] = [
     Upgrade(id: "automation", name: "Business Automation", icon: "🤖", description: "+50% tap value", cost: 750000, effect: .tapMultiplier(0.5), category: .tools, phaseUnlock: .portfolioEngine),
     Upgrade(id: "advisors", name: "Financial Advisors", icon: "📋", description: "+10% investment returns", cost: 1000000, effect: .investmentBonus(0.10), category: .tools, phaseUnlock: .portfolioEngine),
     
-    // Phase 3 Lifestyle
-    Upgrade(id: "luxury_car", name: "Luxury Car", icon: "🏎️", description: "+100 status points", cost: 200000, effect: .statusBonus(100), category: .lifestyle, phaseUnlock: .portfolioEngine),
-    Upgrade(id: "penthouse", name: "Penthouse", icon: "🏙️", description: "+$25/sec passive", cost: 5000000, effect: .passiveIncome(25), category: .lifestyle, phaseUnlock: .portfolioEngine),  // BALANCED: was 1000
+    // Phase 3 Lifestyle - LUXURY ITEMS: Status symbols that COST money to maintain!
+    Upgrade(id: "luxury_car", name: "Lamborghini", icon: "🏎️", description: "⚠️ FLEX: +200 status, COSTS $50/sec upkeep", cost: 300000, effect: .luxuryFlex(status: 200, upkeepPerSecond: 50), category: .lifestyle, phaseUnlock: .portfolioEngine),
+    Upgrade(id: "sports_car", name: "Ferrari Collection", icon: "🏁", description: "⚠️ FLEX: +150 status, COSTS $30/sec upkeep", cost: 500000, effect: .luxuryFlex(status: 150, upkeepPerSecond: 30), category: .lifestyle, phaseUnlock: .portfolioEngine),
+    Upgrade(id: "penthouse", name: "Penthouse Suite", icon: "🏙️", description: "+300 status, $25/sec rental income", cost: 5000000, effect: .passiveIncome(25), category: .lifestyle, phaseUnlock: .portfolioEngine),
+    Upgrade(id: "watch_collection", name: "Rolex Collection", icon: "⌚", description: "+100 status, holds value", cost: 250000, effect: .statusBonus(100), category: .lifestyle, phaseUnlock: .portfolioEngine),
     
-    // Phase 4
-    Upgrade(id: "private_jet", name: "Private Jet", icon: "✈️", description: "+500 status points", cost: 25000000, effect: .statusBonus(500), category: .lifestyle, phaseUnlock: .legacyScale),
-    Upgrade(id: "yacht", name: "Super Yacht", icon: "🛥️", description: "+$100/sec passive", cost: 100000000, effect: .passiveIncome(100), category: .lifestyle, phaseUnlock: .legacyScale),  // BALANCED: was 10000
+    // Phase 4 Lifestyle - BIG FLEX ITEMS (massive status, MASSIVE drain!)
+    Upgrade(id: "private_jet", name: "Private Jet", icon: "✈️", description: "⚠️ BIG FLEX: +1000 status, COSTS $500/sec", cost: 25000000, effect: .luxuryFlex(status: 1000, upkeepPerSecond: 500), category: .lifestyle, phaseUnlock: .legacyScale),
+    Upgrade(id: "yacht", name: "Super Yacht", icon: "🛥️", description: "⚠️ BIG FLEX: +1500 status, COSTS $1000/sec", cost: 100000000, effect: .luxuryFlex(status: 1500, upkeepPerSecond: 1000), category: .lifestyle, phaseUnlock: .legacyScale),
+    Upgrade(id: "mansion", name: "Mega Mansion", icon: "🏰", description: "⚠️ BIG FLEX: +800 status, COSTS $200/sec", cost: 50000000, effect: .luxuryFlex(status: 800, upkeepPerSecond: 200), category: .lifestyle, phaseUnlock: .legacyScale),
+    Upgrade(id: "art_collection", name: "Art Collection", icon: "🖼️", description: "+500 status, appreciates over time", cost: 10000000, effect: .statusBonus(500), category: .lifestyle, phaseUnlock: .legacyScale),
     Upgrade(id: "foundation", name: "Charitable Foundation", icon: "❤️", description: "+2000 status, +20% opportunity", cost: 50000000, effect: .statusBonus(2000), category: .network, phaseUnlock: .legacyScale),
     Upgrade(id: "world_tour", name: "World Influence Tour", icon: "🌐", description: "+100% tap value", cost: 500000000, effect: .tapMultiplier(1.0), category: .network, phaseUnlock: .legacyScale)
 ]
