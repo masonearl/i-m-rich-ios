@@ -1236,6 +1236,7 @@ struct CompactInvestmentRow: View {
     @State private var showWithdrawSheet = false
     @State private var showSuccess = false
     @State private var showWithdrawSuccess = false
+    @State private var showDetailSheet = false  // NEW: Tap for details
     
     var canAffordMin: Bool {
         game.cash >= investment.minInvestment
@@ -1247,7 +1248,7 @@ struct CompactInvestmentRow: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Main row - compact
+            // Main row - compact (TAP FOR DETAILS)
             HStack(spacing: 8) {
                 Text(investment.icon)
                     .font(.system(size: 14))
@@ -1315,6 +1316,10 @@ struct CompactInvestmentRow: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
+            .contentShape(Rectangle())  // Make entire row tappable
+            .onTapGesture {
+                showDetailSheet = true
+            }
             
             // Expandable invest panel
             if showInvestSheet {
@@ -1349,6 +1354,9 @@ struct CompactInvestmentRow: View {
                 }
             }
         )
+        .sheet(isPresented: $showDetailSheet) {
+            InvestmentDetailSheet(investment: investment, game: game)
+        }
     }
     
     var withdrawPanel: some View {
@@ -2756,5 +2764,415 @@ struct CompactHeader: View {
                 .foregroundColor(AppColors.textPrimary)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Investment Detail Sheet
+/// Full investment details with stock info, recommendations, and educational content
+struct InvestmentDetailSheet: View {
+    let investment: Investment
+    @ObservedObject var game: GameState
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var sentimentManager = InvestmentSentimentManager.shared
+    
+    var sentiment: InvestmentSentiment {
+        sentimentManager.getSentiment(for: investment.id)
+    }
+    
+    // Simulated stock data
+    var peRatio: Double {
+        switch investment.riskLevel {
+        case .low: return Double.random(in: 12...18)
+        case .medium: return Double.random(in: 18...30)
+        case .high: return Double.random(in: 30...50)
+        case .extreme: return Double.random(in: 50...200)
+        }
+    }
+    
+    var marketCap: String {
+        switch investment.id {
+        case "aapl": return "$3.0T"
+        case "msft": return "$2.9T"
+        case "googl": return "$1.8T"
+        case "amzn": return "$1.5T"
+        case "nvda": return "$1.2T"
+        case "meta": return "$900B"
+        case "tsla": return "$700B"
+        case "btc": return "$850B"
+        case "eth": return "$280B"
+        default: return "N/A"
+        }
+    }
+    
+    var analystRating: (rating: String, color: Color, icon: String) {
+        switch sentiment.level {
+        case .veryBullish: return ("Strong Buy", AppColors.mattGreen, "hand.thumbsup.fill")
+        case .bullish: return ("Buy", AppColors.softGreen, "hand.thumbsup")
+        case .neutral: return ("Hold", AppColors.textSecondary, "hand.raised")
+        case .bearish: return ("Sell", AppColors.warning, "hand.thumbsdown")
+        case .veryBearish: return ("Strong Sell", AppColors.negative, "hand.thumbsdown.fill")
+        case .warning: return ("Caution", AppColors.warning, "exclamationmark.triangle")
+        case .avoid: return ("Avoid", AppColors.negative, "xmark.octagon")
+        }
+    }
+    
+    var earningsDate: String {
+        let daysUntil = Int.random(in: 5...90)
+        if daysUntil < 14 {
+            return "📅 Earnings in \(daysUntil) days!"
+        } else if daysUntil < 30 {
+            return "📅 Earnings this month"
+        } else {
+            return "📅 Next earnings: ~\(daysUntil/30) months"
+        }
+    }
+    
+    var investmentTip: String {
+        switch investment.riskLevel {
+        case .low:
+            return "💡 Low-risk investments are great for long-term wealth building. Consider dollar-cost averaging."
+        case .medium:
+            return "💡 Medium-risk investments offer balanced growth. Diversify across sectors to reduce risk."
+        case .high:
+            return "💡 High-risk investments can deliver big returns but also big losses. Only invest what you can afford to lose."
+        case .extreme:
+            return "⚠️ Extreme volatility! This is speculative. Never invest more than 5-10% of your portfolio here."
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 16) {
+                    // Header
+                    headerSection
+                    
+                    // Your Position
+                    if investment.amountInvested > 0 {
+                        positionSection
+                    }
+                    
+                    // Key Metrics
+                    metricsSection
+                    
+                    // Analyst Recommendation
+                    analystSection
+                    
+                    // News & Sentiment
+                    newsSection
+                    
+                    // Educational Tips
+                    educationSection
+                    
+                    // Action Buttons
+                    actionButtons
+                }
+                .padding()
+            }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle(investment.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(AppColors.mattGreen)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    var headerSection: some View {
+        VStack(spacing: 8) {
+            Text(investment.icon)
+                .font(.system(size: 50))
+            
+            Text(investment.name)
+                .font(.title2.bold())
+                .foregroundColor(.white)
+            
+            Text(investment.description)
+                .font(.caption)
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+            
+            HStack(spacing: 12) {
+                // Return badge
+                HStack(spacing: 4) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.caption)
+                    Text("\(Int(investment.baseReturn * 100))% avg return")
+                        .font(.caption.bold())
+                }
+                .foregroundColor(AppColors.mattGreen)
+                
+                // Risk badge
+                HStack(spacing: 4) {
+                    Image(systemName: "gauge")
+                        .font(.caption)
+                    Text(investment.riskLevel.rawValue)
+                        .font(.caption.bold())
+                }
+                .foregroundColor(riskColor)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .cardStyle()
+    }
+    
+    var riskColor: Color {
+        switch investment.riskLevel {
+        case .low: return AppColors.mattGreen
+        case .medium: return AppColors.mattBlue
+        case .high: return AppColors.warning
+        case .extreme: return AppColors.negative
+        }
+    }
+    
+    var positionSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("YOUR POSITION")
+                .font(.caption.bold())
+                .foregroundColor(AppColors.textMuted)
+            
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Invested")
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                    Text(game.formatCompact(investment.amountInvested))
+                        .font(.title3.bold())
+                        .foregroundColor(.white)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("Current Value")
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                    Text(game.formatCompact(investment.totalValue))
+                        .font(.title3.bold())
+                        .foregroundColor(.white)
+                }
+            }
+            
+            // Gain/Loss bar
+            HStack {
+                Text(investment.unrealizedGains >= 0 ? "Unrealized Gain" : "Unrealized Loss")
+                    .font(.caption)
+                    .foregroundColor(AppColors.textSecondary)
+                Spacer()
+                Text(investment.unrealizedGains >= 0 ? "+\(game.formatCompact(investment.unrealizedGains))" : "-\(game.formatCompact(abs(investment.unrealizedGains)))")
+                    .font(.headline.bold())
+                    .foregroundColor(investment.unrealizedGains >= 0 ? AppColors.mattGreen : AppColors.negative)
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(investment.unrealizedGains >= 0 ? AppColors.mattGreen.opacity(0.1) : AppColors.negative.opacity(0.1))
+            )
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+    }
+    
+    var metricsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("KEY METRICS")
+                .font(.caption.bold())
+                .foregroundColor(AppColors.textMuted)
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                metricCard(title: "Expected Return", value: "\(Int(investment.baseReturn * 100))%/yr", icon: "chart.line.uptrend.xyaxis")
+                metricCard(title: "Volatility", value: "\(Int(investment.volatility * 100))%", icon: "waveform.path.ecg")
+                metricCard(title: "Min Investment", value: game.formatCompact(Double(investment.minInvestment)), icon: "dollarsign.circle")
+                metricCard(title: "Market Cap", value: marketCap, icon: "building.2")
+            }
+            
+            // Earnings
+            HStack {
+                Image(systemName: "calendar")
+                    .foregroundColor(AppColors.mattBlue)
+                Text(earningsDate)
+                    .font(.caption)
+                    .foregroundColor(.white)
+                Spacer()
+            }
+            .padding(10)
+            .background(AppColors.surfaceLight)
+            .cornerRadius(8)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+    }
+    
+    func metricCard(title: String, value: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.caption2)
+                    .foregroundColor(AppColors.textMuted)
+                Text(title)
+                    .font(.caption2)
+                    .foregroundColor(AppColors.textMuted)
+            }
+            Text(value)
+                .font(.subheadline.bold())
+                .foregroundColor(.white)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(AppColors.surfaceLight)
+        .cornerRadius(8)
+    }
+    
+    var analystSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("ANALYST RECOMMENDATION")
+                .font(.caption.bold())
+                .foregroundColor(AppColors.textMuted)
+            
+            HStack(spacing: 16) {
+                // Rating badge
+                VStack(spacing: 4) {
+                    Image(systemName: analystRating.icon)
+                        .font(.title)
+                        .foregroundColor(analystRating.color)
+                    Text(analystRating.rating)
+                        .font(.headline.bold())
+                        .foregroundColor(analystRating.color)
+                }
+                .frame(width: 80)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(sentiment.headline)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                    
+                    Text(sentiment.details)
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                    
+                    HStack(spacing: 4) {
+                        Text("Trend:")
+                            .font(.caption2)
+                            .foregroundColor(AppColors.textMuted)
+                        Text("\(sentiment.trend.icon) \(sentiment.trend.rawValue)")
+                            .font(.caption2.bold())
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+    }
+    
+    var newsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("MARKET SENTIMENT")
+                .font(.caption.bold())
+                .foregroundColor(AppColors.textMuted)
+            
+            // Sentiment level indicator
+            HStack(spacing: 4) {
+                ForEach(["🔴", "🟠", "🟡", "🟢", "🚀"], id: \.self) { emoji in
+                    Text(emoji)
+                        .font(.title3)
+                        .opacity(emojiOpacity(for: emoji))
+                }
+                Spacer()
+                Text(sentiment.level.rawValue)
+                    .font(.caption.bold())
+                    .foregroundColor(sentiment.level.color)
+            }
+            .padding(10)
+            .background(AppColors.surfaceLight)
+            .cornerRadius(8)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+    }
+    
+    func emojiOpacity(for emoji: String) -> Double {
+        switch sentiment.level {
+        case .veryBearish, .avoid: return emoji == "🔴" ? 1.0 : 0.3
+        case .bearish, .warning: return emoji == "🟠" ? 1.0 : 0.3
+        case .neutral: return emoji == "🟡" ? 1.0 : 0.3
+        case .bullish: return emoji == "🟢" ? 1.0 : 0.3
+        case .veryBullish: return emoji == "🚀" ? 1.0 : 0.3
+        }
+    }
+    
+    var educationSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("INVESTING TIP")
+                .font(.caption.bold())
+                .foregroundColor(AppColors.textMuted)
+            
+            Text(investmentTip)
+                .font(.caption)
+                .foregroundColor(.white)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.mattBlue.opacity(0.2))
+                .cornerRadius(8)
+            
+            // Risk explanation
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Understanding Volatility")
+                    .font(.caption.bold())
+                    .foregroundColor(AppColors.textMuted)
+                Text("Volatility of \(Int(investment.volatility * 100))% means returns can vary by that much from the average. Higher volatility = more unpredictable but potentially higher returns.")
+                    .font(.caption2)
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            .padding(10)
+            .background(AppColors.surfaceLight)
+            .cornerRadius(8)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+    }
+    
+    var actionButtons: some View {
+        HStack(spacing: 12) {
+            if investment.amountInvested > 0 {
+                Button(action: { dismiss() }) {
+                    HStack {
+                        Image(systemName: "arrow.down.circle")
+                        Text("Withdraw")
+                    }
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppColors.warning)
+                    .cornerRadius(12)
+                }
+            }
+            
+            Button(action: { dismiss() }) {
+                HStack {
+                    Image(systemName: "plus.circle")
+                    Text(investment.amountInvested > 0 ? "Add More" : "Invest Now")
+                }
+                .font(.subheadline.bold())
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(game.cash >= Double(investment.minInvestment) ? AppColors.mattGreen : AppColors.textMuted)
+                .cornerRadius(12)
+            }
+            .disabled(game.cash < Double(investment.minInvestment))
+        }
+        .padding(.top, 8)
     }
 }
