@@ -1029,6 +1029,76 @@ struct ZonedGameView: View {
                 .background(AppColors.warning.opacity(0.15))
                 .cornerRadius(8)
             }
+            
+            // Locations summary (if any)
+            if !cm.state.locations.isEmpty {
+                VStack(spacing: 6) {
+                    HStack {
+                        Text("📍")
+                        Text("LOCATIONS")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(AppColors.textMuted)
+                        Spacer()
+                        Text("\(cm.state.locations.count)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    ForEach(cm.state.locations) { location in
+                        HStack(spacing: 6) {
+                            Text(location.icon)
+                                .font(.system(size: 10))
+                            Text(location.name)
+                                .font(.system(size: 9))
+                                .foregroundColor(.white)
+                            Text("• \(location.city)")
+                                .font(.system(size: 9))
+                                .foregroundColor(AppColors.textMuted)
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(10)
+                .background(AppColors.surfaceLight)
+                .cornerRadius(8)
+            }
+            
+            Divider().background(AppColors.border)
+            
+            // Action buttons
+            HStack(spacing: 10) {
+                // Expand button
+                Button(action: { showExpandSheet = true }) {
+                    HStack(spacing: 4) {
+                        Text("🏗️")
+                            .font(.system(size: 12))
+                        Text("EXPAND")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(AppColors.mattBlue)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // Sell button
+                Button(action: { showSellCompanyAlert = true }) {
+                    HStack(spacing: 4) {
+                        Text("💰")
+                            .font(.system(size: 12))
+                        Text("SELL")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(AppColors.warning.opacity(0.8))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
         }
         .padding(16)
         .background(
@@ -1039,7 +1109,23 @@ struct ZonedGameView: View {
                         .stroke(AppColors.purple.opacity(0.3), lineWidth: 1)
                 )
         )
+        .alert("Sell Company?", isPresented: $showSellCompanyAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Sell for \(game.formatCompact(cm.salePrice))", role: .destructive) {
+                let proceeds = cm.sellCompany()
+                game.cash += proceeds
+                NewsFeedManager.shared.addNews("💼", "SOLD COMPANY", "You sold your company for \(game.formatCompact(proceeds))!")
+            }
+        } message: {
+            Text("Your company is worth \(game.formatCompact(cm.salePrice)). You can start a new company after selling.")
+        }
+        .sheet(isPresented: $showExpandSheet) {
+            ExpandCompanySheet(game: game)
+        }
     }
+    
+    @State private var showExpandSheet = false
+    @State private var showSellCompanyAlert = false
     
     private func companyStatCell(icon: String, label: String, value: String, color: Color) -> some View {
         VStack(spacing: 2) {
@@ -4102,5 +4188,273 @@ struct PrestigeSheet: View {
                 .foregroundColor(AppColors.warning)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Expand Company Sheet
+struct ExpandCompanySheet: View {
+    @ObservedObject var game: GameState
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var companyManager = CompanyManager.shared
+    
+    @State private var selectedType: (type: String, name: String, cost: Double, employeesRequired: Int)?
+    @State private var selectedCity: String = "San Francisco"
+    @State private var showConfirmation = false
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("🏗️")
+                            .font(.system(size: 50))
+                        
+                        Text("EXPAND YOUR EMPIRE")
+                            .font(.system(size: 20, weight: .black))
+                            .foregroundColor(.white)
+                            .tracking(2)
+                        
+                        Text("Open new locations to increase revenue and capacity")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Current stats
+                    HStack(spacing: 16) {
+                        statBox(
+                            icon: "👥",
+                            label: "Employees",
+                            value: "\(companyManager.state.totalEmployees)"
+                        )
+                        statBox(
+                            icon: "📍",
+                            label: "Locations",
+                            value: "\(companyManager.state.locations.count)"
+                        )
+                        statBox(
+                            icon: "💰",
+                            label: "Cash",
+                            value: game.formatCompact(game.cash)
+                        )
+                    }
+                    
+                    // Location types
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("CHOOSE LOCATION TYPE")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        if companyManager.availableLocationTypes.isEmpty {
+                            Text("Found a company first to unlock expansion options")
+                                .font(.subheadline)
+                                .foregroundColor(AppColors.textSecondary)
+                                .padding()
+                        } else {
+                            ForEach(companyManager.availableLocationTypes, id: \.type) { locType in
+                                LocationTypeRow(
+                                    type: locType.type,
+                                    name: locType.name,
+                                    cost: locType.cost,
+                                    employeesRequired: locType.employeesRequired,
+                                    canAfford: game.cash >= locType.cost,
+                                    hasEmployees: companyManager.canExpandLocation(employeesRequired: locType.employeesRequired),
+                                    isSelected: selectedType?.type == locType.type,
+                                    game: game
+                                ) {
+                                    selectedType = locType
+                                }
+                            }
+                        }
+                    }
+                    
+                    // City selection
+                    if selectedType != nil {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("CHOOSE CITY")
+                                .font(.caption.bold())
+                                .foregroundColor(AppColors.textMuted)
+                            
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                                ForEach(CompanyManager.expansionCities, id: \.self) { city in
+                                    Button(action: { selectedCity = city }) {
+                                        Text(city)
+                                            .font(.subheadline)
+                                            .foregroundColor(selectedCity == city ? .black : .white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(selectedCity == city ? AppColors.mattGreen : AppColors.surfaceLight)
+                                            )
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Build button
+                    if let locType = selectedType {
+                        let canBuild = game.cash >= locType.cost && companyManager.canExpandLocation(employeesRequired: locType.employeesRequired)
+                        
+                        Button(action: {
+                            if canBuild {
+                                showConfirmation = true
+                            }
+                        }) {
+                            VStack(spacing: 4) {
+                                Text("BUILD \(locType.name.uppercased())")
+                                    .font(.headline.bold())
+                                Text("in \(selectedCity) for \(game.formatCompact(locType.cost))")
+                                    .font(.caption)
+                                    .foregroundColor(canBuild ? .black.opacity(0.7) : .gray)
+                            }
+                            .foregroundColor(canBuild ? .black : .gray)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(canBuild ? AppColors.mattGreen : AppColors.surfaceLight)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(!canBuild)
+                        
+                        if !companyManager.canExpandLocation(employeesRequired: locType.employeesRequired) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                Text("Need \(locType.employeesRequired) more employees to staff this location")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(AppColors.warning)
+                        }
+                    }
+                }
+                .padding()
+            }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle("Expand")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+            .alert("Confirm Expansion", isPresented: $showConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Build") {
+                    if let locType = selectedType {
+                        game.cash -= locType.cost
+                        _ = companyManager.addLocation(
+                            type: locType.type,
+                            name: locType.name,
+                            city: selectedCity,
+                            cost: locType.cost,
+                            maxEmployees: locType.employeesRequired * 2
+                        )
+                        NewsFeedManager.shared.addNews(
+                            "🏗️",
+                            "NEW LOCATION",
+                            "Opened \(locType.name) in \(selectedCity)!"
+                        )
+                        dismiss()
+                    }
+                }
+            } message: {
+                if let locType = selectedType {
+                    Text("Build \(locType.name) in \(selectedCity) for \(game.formatCompact(locType.cost))?")
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    private func statBox(icon: String, label: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(icon)
+                .font(.title2)
+            Text(value)
+                .font(.subheadline.bold())
+                .foregroundColor(.white)
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(AppColors.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(AppColors.surfaceLight)
+        .cornerRadius(10)
+    }
+}
+
+// MARK: - Location Type Row
+struct LocationTypeRow: View {
+    let type: String
+    let name: String
+    let cost: Double
+    let employeesRequired: Int
+    let canAfford: Bool
+    let hasEmployees: Bool
+    let isSelected: Bool
+    @ObservedObject var game: GameState
+    let onSelect: () -> Void
+    
+    var icon: String {
+        switch type {
+        case "datacenter": return "🖥️"
+        case "office": return "🏠"
+        case "factory": return "🏭"
+        case "lab": return "🔬"
+        default: return "📍"
+        }
+    }
+    
+    var body: some View {
+        Button(action: onSelect) {
+            HStack {
+                Text(icon)
+                    .font(.title2)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                    
+                    HStack(spacing: 8) {
+                        Text(game.formatCompact(cost))
+                            .font(.caption)
+                            .foregroundColor(canAfford ? AppColors.mattGreen : AppColors.warning)
+                        
+                        Text("•")
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        Text("\(employeesRequired) staff needed")
+                            .font(.caption)
+                            .foregroundColor(hasEmployees ? AppColors.textSecondary : AppColors.warning)
+                    }
+                }
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(AppColors.mattGreen)
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? AppColors.mattGreen.opacity(0.2) : AppColors.surfaceLight)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? AppColors.mattGreen : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }

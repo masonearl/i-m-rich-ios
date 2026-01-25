@@ -563,6 +563,33 @@ struct Billionaire: Identifiable {
     static let trillionGoal: Double = 1_000_000_000_000  // $1 Trillion
 }
 
+// MARK: - Company Location (for expansion)
+struct CompanyLocation: Codable, Identifiable {
+    var id: String = UUID().uuidString
+    var name: String
+    var type: String  // "headquarters", "datacenter", "office", "factory", "lab"
+    var city: String
+    var employees: Int = 0
+    var maxEmployees: Int = 100
+    var operatingCost: Double = 50_000  // Monthly cost
+    var revenueMultiplier: Double = 1.0  // How much this location boosts revenue
+    
+    var icon: String {
+        switch type {
+        case "headquarters": return "🏢"
+        case "datacenter": return "🖥️"
+        case "office": return "🏠"
+        case "factory": return "🏭"
+        case "lab": return "🔬"
+        default: return "📍"
+        }
+    }
+    
+    var monthlyCost: Double {
+        operatingCost + (Double(employees) * 5000)  // Base + per employee
+    }
+}
+
 // MARK: - Company State
 struct CompanyState: Codable {
     var name: String = "My Company"
@@ -576,8 +603,19 @@ struct CompanyState: Codable {
     var tradeDealsCompleted: Int = 0
     var acquisitions: Int = 0
     
+    // Locations / Expansion
+    var locations: [CompanyLocation] = []
+    
     // Department System
     var departmentState: DepartmentState = DepartmentState()
+    
+    var totalLocations: Int {
+        locations.count
+    }
+    
+    var datacenterCount: Int {
+        locations.filter { $0.type == "datacenter" }.count
+    }
     
     // Maximum valuation cap to prevent overflow bugs
     static let maxValuation: Double = 5_000_000_000_000 // $5 trillion cap
@@ -685,6 +723,122 @@ class CompanyManager: ObservableObject {
         state.acquisitions += 1
         state.totalCapitalRaised += value * 0.1  // 10% of acquisition adds to capital
         updateValuation()
+    }
+    
+    // MARK: - Sell Company
+    
+    /// Calculate sale price based on valuation and multipliers
+    var salePrice: Double {
+        var price = state.companyValuation
+        
+        // Premium for more employees (larger companies are worth more)
+        let employeeMultiplier = 1.0 + min(Double(state.totalEmployees) / 1000, 0.5)  // Up to 50% bonus
+        price *= employeeMultiplier
+        
+        // Premium for multiple locations
+        let locationMultiplier = 1.0 + (Double(state.locations.count) * 0.1)  // 10% per location
+        price *= locationMultiplier
+        
+        // Premium for industries
+        let industryMultiplier = 1.0 + (Double(state.industries.count) * 0.05)  // 5% per industry
+        price *= industryMultiplier
+        
+        return price
+    }
+    
+    /// Sell the company and return cash to player
+    /// Returns the sale price
+    func sellCompany() -> Double {
+        let price = salePrice
+        
+        // Reset company state
+        state = CompanyState()
+        
+        return price
+    }
+    
+    // MARK: - Expansion / Locations
+    
+    /// Available location types based on company industry
+    var availableLocationTypes: [(type: String, name: String, cost: Double, employeesRequired: Int)] {
+        guard let industry = state.companyType else { return [] }
+        
+        switch industry {
+        case .dataCenters:
+            return [
+                ("datacenter", "Data Center", 5_000_000, 50),
+                ("office", "Regional Office", 500_000, 10)
+            ]
+        case .software, .ai:
+            return [
+                ("office", "Dev Office", 1_000_000, 20),
+                ("datacenter", "Cloud Infrastructure", 10_000_000, 75),
+                ("lab", "R&D Lab", 3_000_000, 30)
+            ]
+        case .space:
+            return [
+                ("factory", "Manufacturing Facility", 50_000_000, 200),
+                ("lab", "Launch Facility", 100_000_000, 150),
+                ("office", "Mission Control", 10_000_000, 50)
+            ]
+        case .biotech:
+            return [
+                ("lab", "Research Lab", 5_000_000, 40),
+                ("factory", "Production Facility", 20_000_000, 100)
+            ]
+        case .automotive:
+            return [
+                ("factory", "Gigafactory", 30_000_000, 500),
+                ("office", "Design Studio", 5_000_000, 30)
+            ]
+        default:
+            return [
+                ("office", "Office", 500_000, 10),
+                ("factory", "Facility", 5_000_000, 50)
+            ]
+        }
+    }
+    
+    /// Cities available for expansion
+    static let expansionCities = [
+        "San Francisco", "Austin", "Seattle", "New York", "Boston",
+        "London", "Berlin", "Singapore", "Tokyo", "Dublin"
+    ]
+    
+    /// Check if we have enough employees to support a new location
+    func canExpandLocation(employeesRequired: Int) -> Bool {
+        // Need at least the required employees, plus 20% buffer for existing operations
+        let available = state.totalEmployees
+        let needed = state.locations.reduce(0) { $0 + $1.employees } + employeesRequired
+        return available >= needed
+    }
+    
+    /// Add a new location
+    func addLocation(type: String, name: String, city: String, cost: Double, maxEmployees: Int) -> Bool {
+        let location = CompanyLocation(
+            name: name,
+            type: type,
+            city: city,
+            employees: 0,
+            maxEmployees: maxEmployees,
+            operatingCost: cost / 100,  // Monthly operating cost is 1% of build cost
+            revenueMultiplier: type == "datacenter" ? 1.5 : (type == "factory" ? 1.3 : 1.1)
+        )
+        
+        state.locations.append(location)
+        updateValuation()
+        return true
+    }
+    
+    /// Get total revenue multiplier from all locations
+    var locationRevenueMultiplier: Double {
+        guard !state.locations.isEmpty else { return 1.0 }
+        return state.locations.reduce(1.0) { $0 * $1.revenueMultiplier }
+    }
+    
+    /// Get monthly operating costs for all locations
+    var totalLocationCosts: Double {
+        state.locations.reduce(0) { $0 + $1.monthlyCost }
     }
     
     // MARK: - Department Actions
