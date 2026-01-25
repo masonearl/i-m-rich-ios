@@ -189,7 +189,70 @@ class GameState: ObservableObject {
     
     var promotionCost: Double {
         guard let next = nextRole else { return 0 }
-        return Double(next.statusPoints) * 100
+        // Cost scales exponentially with role level
+        let baseMultiplier = pow(2.0, Double(currentRoleIndex))
+        return Double(next.statusPoints) * 150 * baseMultiplier
+    }
+    
+    // MARK: - Promotion Requirements
+    
+    /// Number of contacts required for next promotion
+    var contactsRequiredForPromotion: Int {
+        // Each level requires more networking
+        // Level 0→1: 1 contact, 1→2: 2 contacts, 2→3: 3 contacts, etc.
+        return max(1, currentRoleIndex + 1)
+    }
+    
+    /// How many career-relevant contacts the player has met
+    var careerContactsMet: Int {
+        contacts.filter { $0.hasMet && ($0.careerPath == nil || $0.careerPath == selectedCareer) }.count
+    }
+    
+    /// Status points required for next promotion
+    var statusRequiredForPromotion: Int {
+        guard let next = nextRole else { return 0 }
+        // Require 50% of the role's status threshold
+        return next.statusPoints / 2
+    }
+    
+    /// Check if player meets all promotion requirements
+    var canPromote: Bool {
+        guard nextRole != nil else { return false }
+        guard cash >= promotionCost else { return false }
+        guard careerContactsMet >= contactsRequiredForPromotion else { return false }
+        guard statusPoints >= statusRequiredForPromotion else { return false }
+        return true
+    }
+    
+    /// Get detailed promotion requirements for UI
+    var promotionRequirements: [(requirement: String, met: Bool, detail: String)] {
+        var reqs: [(requirement: String, met: Bool, detail: String)] = []
+        
+        // Cash requirement
+        let hasCash = cash >= promotionCost
+        reqs.append((
+            requirement: "💰 Cash",
+            met: hasCash,
+            detail: "\(formatCompact(cash)) / \(formatCompact(promotionCost))"
+        ))
+        
+        // Contacts requirement
+        let hasContacts = careerContactsMet >= contactsRequiredForPromotion
+        reqs.append((
+            requirement: "🤝 Network",
+            met: hasContacts,
+            detail: "\(careerContactsMet) / \(contactsRequiredForPromotion) contacts"
+        ))
+        
+        // Status requirement
+        let hasStatus = statusPoints >= statusRequiredForPromotion
+        reqs.append((
+            requirement: "⚡ Status",
+            met: hasStatus,
+            detail: "\(statusPoints) / \(statusRequiredForPromotion) points"
+        ))
+        
+        return reqs
     }
     
     var passiveIncomePerSecond: Double {
@@ -1270,11 +1333,20 @@ class GameState: ObservableObject {
     
     func promote() -> Bool {
         guard let next = nextRole else { return false }
-        guard cash >= promotionCost else { return false }
         
+        // Check ALL requirements
+        guard canPromote else { return false }
+        
+        // Deduct cost
         cash -= promotionCost
         currentRoleIndex += 1
         statusPoints += next.statusPoints
+        
+        // Announce the promotion with what was required
+        NewsFeedManager.shared.addNews(
+            category: .personal,
+            headline: "🎉 PROMOTED to \(next.title)! Your network and reputation paid off!"
+        )
         
         // Check if max career reached - unlock ventures!
         if let career = selectedCareer {

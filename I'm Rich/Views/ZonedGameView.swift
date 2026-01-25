@@ -438,70 +438,85 @@ struct ZonedGameView: View {
         let rolesCount = game.selectedCareer?.roles.count ?? 0
         if game.currentRoleIndex < rolesCount - 1 {
             let nextRole = game.selectedCareer?.roles[game.currentRoleIndex + 1]
-            let nextStatusRequired = nextRole?.statusPoints ?? 0
-            let canPromote = game.statusPoints >= nextStatusRequired && game.cash >= game.promotionCost
             
             VStack(spacing: 10) {
-                // Status progress
-                HStack {
-                    Text("⭐ Status:")
-                        .font(.system(size: 10))
-                        .foregroundColor(.gray)
-                    Text("\(game.statusPoints)/\(nextStatusRequired)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(game.statusPoints >= nextStatusRequired ? .green : .blue)
-                    
-                    Spacer()
-                    
-                    if let next = nextRole {
-                        Text("Next: \(next.title)")
-                            .font(.system(size: 9))
-                            .foregroundColor(.gray)
+                // Next role header
+                if let next = nextRole {
+                    HStack {
+                        Text("📈 NEXT: \(next.title)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(AppColors.mattGreen)
+                        Spacer()
+                        Text("+\(game.formatCompact(Double(next.salary)))/yr")
+                            .font(.system(size: 10))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                }
+                
+                // Requirements grid
+                VStack(spacing: 6) {
+                    ForEach(game.promotionRequirements, id: \.requirement) { req in
+                        HStack(spacing: 8) {
+                            Image(systemName: req.met ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 12))
+                                .foregroundColor(req.met ? AppColors.mattGreen : AppColors.textMuted)
+                            
+                            Text(req.requirement)
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(req.met ? .white : AppColors.textSecondary)
+                            
+                            Spacer()
+                            
+                            Text(req.detail)
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(req.met ? AppColors.mattGreen : AppColors.warning)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(req.met ? AppColors.mattGreen.opacity(0.1) : AppColors.surfaceLight)
+                        )
                     }
                 }
                 
                 // Promote button
-                if game.statusPoints >= nextStatusRequired {
-                    Button(action: {
-                        if game.promote() {
-                            FeedbackCoordinator.shared.tap()
+                Button(action: {
+                    if game.promote() {
+                        FeedbackCoordinator.shared.achievement()
+                    }
+                }) {
+                    HStack {
+                        Text(game.canPromote ? "🎉 PROMOTE NOW" : "🔒 REQUIREMENTS NOT MET")
+                            .font(.system(size: 12, weight: .bold))
+                        Spacer()
+                        if game.canPromote {
+                            Text(game.formatCompact(game.promotionCost))
+                                .font(.system(size: 10, weight: .bold))
                         }
-                    }) {
+                    }
+                    .foregroundColor(game.canPromote ? .black : AppColors.textMuted)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(game.canPromote ? AppColors.mattGreen : AppColors.surfaceLight)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(!game.canPromote)
+                
+                // Hint about what to do
+                if !game.canPromote {
+                    let missingReqs = game.promotionRequirements.filter { !$0.met }
+                    if let firstMissing = missingReqs.first {
                         HStack {
-                            Text("🎉 PROMOTE")
-                                .font(.system(size: 12, weight: .bold))
-                            Spacer()
-                            Text("Cost: \(game.formatCompact(game.promotionCost))")
-                                .font(.system(size: 10))
-                        }
-                        .foregroundColor(canPromote ? .black : .gray)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(canPromote ? Color.green : Color.gray.opacity(0.3))
-                        )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(!canPromote)
-                    
-                    if !canPromote && game.cash < game.promotionCost {
-                        Text("Need \(game.formatCompact(game.promotionCost - game.cash)) more cash")
-                            .font(.system(size: 9))
-                            .foregroundColor(.orange)
-                    }
-                } else {
-                    // Progress bar to next promotion
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.white.opacity(0.1))
-                            Capsule()
-                                .fill(Color.blue)
-                                .frame(width: geo.size.width * CGFloat(min(game.statusPoints, nextStatusRequired)) / CGFloat(nextStatusRequired))
+                            Text("💡")
+                            Text(promotionHint(for: firstMissing.requirement))
+                                .font(.system(size: 9))
+                                .foregroundColor(AppColors.textSecondary)
                         }
                     }
-                    .frame(height: 6)
                 }
             }
         } else {
@@ -522,6 +537,19 @@ struct ZonedGameView: View {
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(Color.blue.opacity(0.3), lineWidth: 1)
             )
+    }
+    
+    private func promotionHint(for requirement: String) -> String {
+        switch requirement {
+        case "💰 Cash":
+            return "Tap to hustle, buy auto-tappers, or invest to grow your cash!"
+        case "🤝 Network":
+            return "Meet more people! Scroll down to find contacts to network with."
+        case "⚡ Status":
+            return "Earn status by tapping (every 100 taps = +1) and meeting contacts."
+        default:
+            return "Keep grinding to meet all requirements!"
+        }
     }
     
     var careerSelectionPrompt: some View {
