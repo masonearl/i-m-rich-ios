@@ -1714,6 +1714,9 @@ struct ZonedGameView: View {
                     game.cash -= 25000
                     if familyManager.propose(to: partner, weddingBudget: 25000, currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge) {
                         NewsFeedManager.shared.addNews("💍", "ENGAGED!", "You're getting married to \(partner.name)!")
+                        
+                        // 💎 Easter egg: Tiffany Tax!
+                        let _ = familyManager.applyTiffanyTax(game: game)
                     }
                 }
             }
@@ -5179,7 +5182,10 @@ struct CurrentDatingCard: View {
             Button("Yes! 💍") {
                 if game.cash >= 25000 {
                     game.cash -= 25000
-                    _ = familyManager.propose(to: partner, weddingBudget: 25000, currentYear: LifeCycleManager.shared.gameYearsPassed + LifeCycleManager.shared.startingAge)
+                    if familyManager.propose(to: partner, weddingBudget: 25000, currentYear: LifeCycleManager.shared.gameYearsPassed + LifeCycleManager.shared.startingAge) {
+                        // 💎 Easter egg: Tiffany Tax!
+                        let _ = familyManager.applyTiffanyTax(game: game)
+                    }
                 }
             }
         } message: {
