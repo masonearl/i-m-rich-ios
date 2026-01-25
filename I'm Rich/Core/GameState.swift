@@ -816,6 +816,14 @@ class GameState: ObservableObject {
     // MARK: - Year End Processing
     
     func processYearEnd(event: YearEndEvent) {
+        // ═══════════════════════════════════════════════════════════
+        // SAFETY: Track starting cash and limit total deductions to 50%
+        // This prevents the "cash reset to zero" bug
+        // ═══════════════════════════════════════════════════════════
+        let startingCash = cash
+        let maxTotalDeduction = startingCash * 0.5  // Never take more than 50% of cash in one year
+        var totalDeducted: Double = 0
+        
         // Compound all investment gains (with partnership bonuses)
         var totalCompoundedGains: Double = 0
         for i in 0..<investments.count where investments[i].amountInvested > 0 {
@@ -837,38 +845,31 @@ class GameState: ObservableObject {
             // Announce in news feed
             NewsFeedManager.shared.addNews(
                 category: .personal,
-                headline: "Year-end investment returns: +\(formatCompact(totalCompoundedGains))"
+                headline: "📈 Investment returns: +\(formatCompact(totalCompoundedGains))"
             )
         }
         
         // ═══════════════════════════════════════════════════════════
         // CONSEQUENCE SYSTEM - Monthly Expenses & Lifestyle Costs
+        // (Now capped to prevent cash drain)
         // ═══════════════════════════════════════════════════════════
         
         let yearlyExpenses = calculateYearlyExpenses()
-        if yearlyExpenses > 0 {
-            if cash >= yearlyExpenses {
-                cash -= yearlyExpenses
-                CreditManager.shared.modifyScore(by: 5, reason: "Expenses paid on time")
-            } else if cash > 0 {
-                // Partial payment - pay what we can (up to 50% of cash for expenses)
-                let partialPayment = min(cash * 0.5, yearlyExpenses)
-                let shortfall = yearlyExpenses - partialPayment
-                cash -= partialPayment
-                CreditManager.shared.modifyScore(by: -20, reason: "Partial expense payment")
-                NewsFeedManager.shared.addNews(
-                    category: .personal,
-                    headline: "⚠️ Couldn't cover all expenses. Paid \(formatCompact(partialPayment)), shortfall: \(formatCompact(shortfall))"
-                )
+        if yearlyExpenses > 0 && totalDeducted < maxTotalDeduction {
+            let affordableExpenses = min(yearlyExpenses, maxTotalDeduction - totalDeducted, cash * 0.2)
+            if affordableExpenses > 0 {
+                cash -= affordableExpenses
+                totalDeducted += affordableExpenses
+                CreditManager.shared.modifyScore(by: 3, reason: "Living expenses paid")
             }
-            // If cash is 0, no deduction (nothing to take)
         }
         
         // Process partnership yearly costs
-        PartnershipManager.shared.processYearlyPartnershipCosts(game: self)
+        // Partnership costs (capped)
+        // PartnershipManager.shared.processYearlyPartnershipCosts(game: self) // Temporarily disabled - was causing cash drain
         
         // ═══════════════════════════════════════════════════════════
-        // TAX SYSTEM - Year-End Taxes
+        // TAX SYSTEM - Year-End Taxes (capped to prevent cash drain)
         // ═══════════════════════════════════════════════════════════
         
         // Record investment gains as income for tax purposes
@@ -876,88 +877,55 @@ class GameState: ObservableObject {
             TaxManager.shared.recordInvestmentIncome(totalCompoundedGains)
         }
         
-        // Process taxes (safely - don't go negative)
-        let (taxBill, taxPaid) = TaxManager.shared.processYearEnd(game: self)
-        if taxBill > 0 {
-            if taxPaid && cash >= taxBill {
-                cash -= taxBill
+        // Process taxes (capped to max deduction limit)
+        let (taxBill, _) = TaxManager.shared.processYearEnd(game: self)
+        if taxBill > 0 && totalDeducted < maxTotalDeduction {
+            let affordableTax = min(taxBill, maxTotalDeduction - totalDeducted, cash * 0.15)
+            if affordableTax > 0 {
+                cash -= affordableTax
+                totalDeducted += affordableTax
                 NewsFeedManager.shared.addNews(
                     category: .markets,
-                    headline: "💰 Taxes paid: \(formatCompact(taxBill)) (Effective rate: \(Int(TaxManager.shared.effectiveTaxRate(for: taxBill) * 100))%)"
-                )
-            } else if taxPaid && cash > 0 {
-                // Partial tax payment
-                let partialPayment = min(cash * 0.4, taxBill)
-                cash -= partialPayment
-                NewsFeedManager.shared.addNews(
-                    category: .markets,
-                    headline: "⚠️ Partial taxes: Paid \(formatCompact(partialPayment)) of \(formatCompact(taxBill))"
-                )
-            } else {
-                NewsFeedManager.shared.addNews(
-                    category: .markets,
-                    headline: "⚠️ Tax debt! Owe IRS: \(formatCompact(taxBill)) - Credit score impacted!"
+                    headline: "💰 Taxes: \(formatCompact(affordableTax))"
                 )
             }
         }
         
-        // ═══════════════════════════════════════════════════════════
-        
         // Age credit account
         CreditManager.shared.ageAccountByMonth()
-        CreditManager.shared.ageAccountByMonth() // 12 months = age by 12
-        for _ in 0..<10 {
+        for _ in 0..<11 {
             CreditManager.shared.ageAccountByMonth()
         }
         
         // ═══════════════════════════════════════════════════════════
-        
-        // ═══════════════════════════════════════════════════════════
-        // COMPANY HEALTH - Payroll, Staffing, & Decay
-        // Players MUST hire employees and pay salaries!
+        // COMPANY HEALTH - Payroll (capped to prevent cash drain)
         // ═══════════════════════════════════════════════════════════
         
         let companyManager = CompanyManager.shared
-        
-        // Process payroll (employees cost money!)
-        // Only charge payroll if company is founded with employees
         let payroll = companyManager.annualPayroll
-        if payroll > 0 && companyManager.state.totalEmployees > 0 {
-            // Be reasonable - only charge what they can afford, don't wipe out cash
-            let affordablePayroll = min(payroll, cash * 0.5) // Max 50% of cash for payroll
-            
-            if cash >= payroll {
-                // Can afford full payroll - great!
-                cash -= payroll
+        
+        if payroll > 0 && companyManager.state.totalEmployees > 0 && totalDeducted < maxTotalDeduction {
+            let affordablePayroll = min(payroll, maxTotalDeduction - totalDeducted, cash * 0.10)
+            if affordablePayroll > 0 {
+                cash -= affordablePayroll
+                totalDeducted += affordablePayroll
                 NewsFeedManager.shared.addNews(
                     category: .personal,
-                    headline: "💼 Payroll paid: \(formatCompact(payroll)) for \(companyManager.state.totalEmployees) employees"
+                    headline: "💼 Payroll: \(formatCompact(affordablePayroll)) for \(companyManager.state.totalEmployees) employees"
                 )
-            } else if cash > 0 {
-                // Partial payment - pay what we can, some consequences
-                let partialPayment = min(cash * 0.5, payroll) // Pay up to 50% of cash
-                cash -= partialPayment
-                let shortfall = payroll - partialPayment
-                NewsFeedManager.shared.addNews(
-                    category: .personal,
-                    headline: "⚠️ Payroll partial: Paid \(formatCompact(partialPayment)) of \(formatCompact(payroll)). Shortfall: \(formatCompact(shortfall))"
-                )
-                // Some employees unhappy but don't quit en masse
-                CreditManager.shared.modifyScore(by: -10, reason: "Partial payroll payment")
             }
-            // Note: If cash is 0, no payroll deduction (nothing to take)
         }
         
-        // Check staffing levels
+        // Check staffing levels (info only, no additional drain)
         let status = companyManager.staffingStatus
         if companyManager.isUnderstaffed {
             NewsFeedManager.shared.addNews(
                 category: .personal,
-                headline: "\(status.icon) \(status.message) - Need \(companyManager.requiredEmployees) employees, have \(companyManager.state.totalEmployees)"
+                headline: "\(status.icon) \(status.message)"
             )
         }
         
-        // Process company health (decay, understaffing penalties)
+        // Process company health (no cash cost, just valuation effects)
         let (_, decay, failed) = companyManager.processYearlyCompanyHealth()
         
         if failed {
@@ -1033,25 +1001,21 @@ class GameState: ObservableObject {
         // Process family yearly events
         familyManager.processYear(currentYear: lifecycleManager.gameYearsPassed + lifecycleManager.startingAge)
         
-        // Deduct child expenses (safely - don't go negative)
+        // Child expenses (capped to total deduction limit)
         let childExpenses = familyManager.state.totalChildExpenses
-        if childExpenses > 0 && cash > 0 {
-            let payment = min(childExpenses, cash * 0.3) // Max 30% of cash for family expenses
-            cash -= payment
-            if payment < childExpenses {
+        if childExpenses > 0 && totalDeducted < maxTotalDeduction {
+            let affordableChild = min(childExpenses, maxTotalDeduction - totalDeducted, cash * 0.05)
+            if affordableChild > 0 {
+                cash -= affordableChild
+                totalDeducted += affordableChild
                 NewsFeedManager.shared.addNews(
                     category: .personal,
-                    headline: "⚠️ Family expenses: Paid \(formatCompact(payment)) of \(formatCompact(childExpenses))"
-                )
-            } else {
-                NewsFeedManager.shared.addNews(
-                    category: .personal,
-                    headline: "👨‍👩‍👧‍👦 Yearly family expenses: \(formatCompact(payment))"
+                    headline: "👨‍👩‍👧‍👦 Family: \(formatCompact(affordableChild))"
                 )
             }
         }
         
-        // Partner income contribution
+        // Partner income contribution (this ADDS money, always good)
         if let partner = familyManager.state.partner, partner.isMarried {
             let partnerIncome = partner.incomeContribution
             if partnerIncome > 0 {
@@ -1065,9 +1029,20 @@ class GameState: ObservableObject {
             lifecycleManager.showRetirementPrompt = true
         }
         
-        // SAFETY: Ensure cash never goes negative after year-end processing
+        // ═══════════════════════════════════════════════════════════
+        // YEAR-END SUMMARY
+        // ═══════════════════════════════════════════════════════════
+        let finalCash = cash
+        let netChange = finalCash - startingCash + totalCompoundedGains
+        
+        if netChange >= 0 {
+            print("📈 Year-end: Started with \(formatCompact(startingCash)), ended with \(formatCompact(finalCash)) (+\(formatCompact(netChange)))")
+        } else {
+            print("📉 Year-end: Started with \(formatCompact(startingCash)), ended with \(formatCompact(finalCash)) (\(formatCompact(netChange)))")
+        }
+        
+        // SAFETY: Ensure cash never goes negative
         if cash < 0 {
-            print("⚠️ Cash went negative (\(cash)) during year-end - resetting to 0")
             cash = 0
         }
     }
@@ -1092,37 +1067,40 @@ class GameState: ObservableObject {
     func calculateYearlyExpenses() -> Double {
         var expenses: Double = 0
         
-        // Base living expenses scale with lifestyle
-        let baseExpenses: [Int: Double] = [
-            1: 24_000,       // $2K/month
-            2: 48_000,       // $4K/month
-            3: 84_000,       // $7K/month
-            4: 150_000,      // $12.5K/month
-            5: 360_000,      // $30K/month
-            6: 1_200_000,    // $100K/month
-            7: 6_000_000,    // $500K/month
-            8: 24_000_000    // $2M/month
-        ]
-        expenses += baseExpenses[lifestyleLevel] ?? 24_000
+        // FIXED: Scale expenses with CASH income, not just net worth
+        // This prevents the death spiral where high investments = high expenses = cash drain
         
-        // Housing costs
+        // Calculate actual "lifestyle" based on passive income + cash, not total net worth
+        let yearlyPassiveIncome = passiveIncomePerSecond * 60 * 5  // 5 min real time = 1 year
+        let affordableLifestyle = max(cash, yearlyPassiveIncome * 12)  // What they can actually afford
+        
+        // Lifestyle expenses are 5-15% of what you can afford (scales with status)
+        let lifestyleRate = 0.05 + (Double(statusPoints) * 0.0001)  // 5% base + 0.01% per status point
+        let baseExpenses = affordableLifestyle * min(0.15, lifestyleRate)  // Cap at 15%
+        expenses += baseExpenses
+        
+        // Housing costs (fixed, not scaling)
         if housing.status == .ownsHome {
             expenses += housing.monthlyPayment * 12  // Mortgage
-            expenses += housing.propertyValue * 0.015  // Property taxes & maintenance
+            expenses += housing.propertyValue * 0.01  // 1% maintenance (reduced from 1.5%)
         } else {
-            expenses += 24_000 * Double(lifestyleLevel) / 2  // Rent scales with lifestyle
+            // Rent: reasonable scaling, capped
+            let rentCost = min(120_000, 12_000 * Double(lifestyleLevel))  // Max $10K/month rent
+            expenses += rentCost
         }
         
-        // Career-related expenses
+        // Career-related expenses (modest)
         if selectedCareer != nil {
-            expenses += 5000 * Double(currentRoleIndex + 1)  // Professional expenses scale with role
+            expenses += 2000 * Double(currentRoleIndex + 1)  // Professional expenses
         }
         
         // Apply credit score modifier (poor credit = higher costs)
         let creditMultiplier = CreditManager.shared.state.tier.purchaseCostMultiplier
         expenses *= creditMultiplier
         
-        return expenses
+        // SAFETY: Never charge more than 25% of cash in expenses
+        let maxAffordable = cash * 0.25
+        return min(expenses, maxAffordable)
     }
     
     // MARK: - Energy-Based Actions
