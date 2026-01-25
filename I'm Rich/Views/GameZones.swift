@@ -78,18 +78,18 @@ enum GameZone: String, CaseIterable {
 }
 
 // MARK: - Zone Tab Bar
+// MARK: - Zone Tab Bar (Robinhood-inspired compact design)
 struct ZoneTabBar: View {
     @Binding var selectedZone: GameZone
     let netWorth: Double
     let unlockedZones: Set<String>
     
     func isZoneUnlocked(_ zone: GameZone) -> Bool {
-        // Check permanent unlock OR current net worth qualifies
         unlockedZones.contains(zone.rawValue) || zone.isUnlocked(netWorth: netWorth)
     }
     
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 4) {
             ForEach(GameZone.allCases, id: \.self) { zone in
                 ZoneTab(
                     zone: zone,
@@ -98,7 +98,7 @@ struct ZoneTabBar: View {
                     netWorth: netWorth
                 ) {
                     if isZoneUnlocked(zone) {
-                        withAnimation(.spring(response: 0.3)) {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                             selectedZone = zone
                         }
                         FeedbackCoordinator.shared.tap()
@@ -106,11 +106,12 @@ struct ZoneTabBar: View {
                 }
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
+        .padding(6)
+        .background(AppColors.cardBackground)
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(AppColors.border, lineWidth: 0.5)
         )
     }
 }
@@ -122,31 +123,26 @@ struct ZoneTab: View {
     let netWorth: Double
     let action: () -> Void
     
+    private var tabColor: Color {
+        isSelected ? AppColors.mattGreen : AppColors.textMuted
+    }
+    
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                ZStack {
-                    if isUnlocked {
-                        Image(systemName: zone.systemIcon)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(isSelected ? zone.color : .gray)
-                    } else {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.gray.opacity(0.5))
-                    }
-                }
-                .frame(height: 22)
+            VStack(spacing: 2) {
+                Image(systemName: isUnlocked ? zone.systemIcon : "lock.fill")
+                    .font(.system(size: isUnlocked ? 16 : 12, weight: .medium))
+                    .foregroundColor(isUnlocked ? tabColor : AppColors.textMuted.opacity(0.4))
                 
                 Text(zone.rawValue)
-                    .font(.system(size: 9, weight: isSelected ? .bold : .medium))
-                    .foregroundColor(isUnlocked ? (isSelected ? zone.color : .gray) : .gray.opacity(0.5))
+                    .font(.system(size: 8, weight: isSelected ? .bold : .medium))
+                    .foregroundColor(isUnlocked ? tabColor : AppColors.textMuted.opacity(0.4))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? zone.color.opacity(0.15) : Color.clear)
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? AppColors.mattGreen.opacity(0.15) : Color.clear)
             )
         }
         .disabled(!isUnlocked)

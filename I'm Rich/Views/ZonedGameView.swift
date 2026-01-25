@@ -17,22 +17,15 @@ struct ZonedGameView: View {
     @ObservedObject private var credit = CreditManager.shared
     @ObservedObject private var partnerships = PartnershipManager.shared
     
-    let accentColor = Color(red: 0.4, green: 0.7, blue: 0.4)
+    // Use new color palette
+    let accentColor = AppColors.mattGreen
     
     var body: some View {
         VStack(spacing: 0) {
-            // Top Bar: Identity & Stats
-            topBar
-            
-            // Memento Mori - Life Progress Bar
-            MementoMoriBar(lifecycle: lifecycle)
-                .padding(.horizontal)
+            // Compact Header: Stats + Progress combined
+            CompactHeader(game: game, lifecycle: lifecycle)
+                .padding(.horizontal, 12)
                 .padding(.top, 4)
-            
-            // Trillionaire Goal
-            TrillionaireGoalView(netWorth: game.netWorth)
-                .padding(.horizontal)
-                .padding(.top, 8)
             
             // Zone Content
             TabView(selection: $selectedZone) {
@@ -45,10 +38,10 @@ struct ZonedGameView: View {
             
             // Zone Tab Bar
             ZoneTabBar(selectedZone: $selectedZone, netWorth: game.netWorth, unlockedZones: game.unlockedZones)
-                .padding(.horizontal)
-                .padding(.bottom, 8)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 6)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(AppColors.background.ignoresSafeArea())
     }
     
     // MARK: - Top Bar
@@ -2610,5 +2603,155 @@ struct MementoMoriBar: View {
                         .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
                 )
         )
+    }
+}
+
+// MARK: - Compact Header (Combines stats, progress, and goal)
+/// Robinhood Gold-inspired header that's clean and information-dense
+struct CompactHeader: View {
+    @ObservedObject var game: GameState
+    @ObservedObject var lifecycle: LifeCycleManager
+    
+    private let trillionGoal: Double = 1_000_000_000_000
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            // Row 1: Net Worth + Age
+            HStack(alignment: .center) {
+                // Net Worth (main focus)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("NET WORTH")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(AppColors.textMuted)
+                    
+                    Text(game.formatCompact(game.netWorth))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(AppColors.mattGreen)
+                }
+                
+                Spacer()
+                
+                // Status & Age (compact)
+                VStack(alignment: .trailing, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(game.ceoTitle.icon)
+                            .font(.system(size: 12))
+                        Text(game.ceoTitle.rawValue)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(game.ceoTitle.color)
+                    }
+                    
+                    Text("Age \(lifecycle.currentAge)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+            
+            // Row 2: Progress to $1T goal + Year progress
+            HStack(spacing: 12) {
+                // Trillion goal progress
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Text("🏆")
+                            .font(.system(size: 8))
+                        Text("$1T GOAL")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(AppColors.textMuted)
+                        Spacer()
+                        Text(String(format: "%.2f%%", (game.netWorth / trillionGoal) * 100))
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(AppColors.mattGreen)
+                    }
+                    
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(AppColors.surfaceLight)
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [AppColors.mattGreen, AppColors.softGreen],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: max(2, geo.size.width * min(1.0, game.netWorth / trillionGoal)))
+                        }
+                    }
+                    .frame(height: 4)
+                }
+                .frame(maxWidth: .infinity)
+                
+                // Year progress
+                VStack(alignment: .trailing, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Text(yearLabel)
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundColor(AppColors.textMuted)
+                        Text("💀")
+                            .font(.system(size: 8))
+                            .opacity(0.6)
+                    }
+                    
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(AppColors.surfaceLight)
+                            Capsule()
+                                .fill(yearProgressColor)
+                                .frame(width: max(2, geo.size.width * lifecycle.yearProgress))
+                        }
+                    }
+                    .frame(height: 4)
+                }
+                .frame(width: 80)
+            }
+            
+            // Row 3: Quick Stats (compact)
+            HStack(spacing: 0) {
+                quickStat(icon: "💵", label: "CASH", value: game.formatCompact(game.cash))
+                Divider().frame(height: 20).background(AppColors.border)
+                quickStat(icon: "📈", label: "INVESTED", value: game.formatCompact(game.totalInvestmentValue))
+                Divider().frame(height: 20).background(AppColors.border)
+                quickStat(icon: "⚡", label: "STATUS", value: "\(game.statusPoints)")
+            }
+        }
+        .padding(12)
+        .background(AppColors.cardBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AppColors.border, lineWidth: 0.5)
+        )
+    }
+    
+    private var yearLabel: String {
+        let months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+        let monthIndex = min(11, Int(lifecycle.yearProgress * 12))
+        return months[monthIndex]
+    }
+    
+    private var yearProgressColor: LinearGradient {
+        LinearGradient(
+            colors: [AppColors.mattBlue, AppColors.primaryBlue],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+    
+    private func quickStat(icon: String, label: String, value: String) -> some View {
+        VStack(spacing: 2) {
+            HStack(spacing: 2) {
+                Text(icon)
+                    .font(.system(size: 8))
+                Text(label)
+                    .font(.system(size: 7, weight: .medium))
+                    .foregroundColor(AppColors.textMuted)
+            }
+            Text(value)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(AppColors.textPrimary)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
