@@ -24,6 +24,11 @@ struct ZonedGameView: View {
             // Top Bar: Identity & Stats
             topBar
             
+            // Memento Mori - Life Progress Bar
+            MementoMoriBar(lifecycle: lifecycle)
+                .padding(.horizontal)
+                .padding(.top, 4)
+            
             // Trillionaire Goal
             TrillionaireGoalView(netWorth: game.netWorth)
                 .padding(.horizontal)
@@ -2452,6 +2457,157 @@ struct WarningBanner: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 6)
                         .stroke(color.opacity(0.5), lineWidth: 1)
+                )
+        )
+    }
+}
+
+// MARK: - Memento Mori Bar
+/// A beautiful life progress bar reminding players of the passage of time
+/// "Memento Mori" - Remember that you will die
+struct MementoMoriBar: View {
+    @ObservedObject var lifecycle: LifeCycleManager
+    
+    // Life expectancy for progress calculation
+    private let lifeExpectancy = 85
+    
+    /// Progress through current year (0-1)
+    private var yearProgress: Double {
+        lifecycle.yearProgress
+    }
+    
+    /// Progress through entire life (0-1)
+    private var lifeProgress: Double {
+        Double(lifecycle.currentAge) / Double(lifeExpectancy)
+    }
+    
+    /// Current month based on year progress
+    private var currentMonth: String {
+        let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        let monthIndex = min(11, Int(yearProgress * 12))
+        return months[monthIndex]
+    }
+    
+    /// Inspiring/motivating phrase based on life stage
+    private var lifePhrase: String {
+        switch lifecycle.currentAge {
+        case 0..<25: return "CARPE DIEM"       // Seize the day
+        case 25..<40: return "TEMPUS FUGIT"    // Time flies
+        case 40..<55: return "MEMENTO MORI"    // Remember death
+        case 55..<70: return "AMOR FATI"       // Love your fate
+        default: return "LEGACY"               // What you leave behind
+        }
+    }
+    
+    /// Color gradient based on life progress
+    private var progressGradient: LinearGradient {
+        let colors: [Color]
+        switch lifecycle.currentAge {
+        case 0..<30:
+            colors = [Color.green, Color.mint]
+        case 30..<50:
+            colors = [Color.blue, Color.cyan]
+        case 50..<70:
+            colors = [Color.orange, Color.yellow]
+        default:
+            colors = [Color.purple, Color.pink]
+        }
+        return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
+    }
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            // Top row: Phrase and Age
+            HStack {
+                // Memento Mori phrase
+                Text(lifePhrase)
+                    .font(.system(size: 10, weight: .black, design: .serif))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                
+                Spacer()
+                
+                // Current month indicator
+                Text(currentMonth.uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.white.opacity(0.6))
+                
+                Text("•")
+                    .foregroundColor(.gray)
+                
+                // Age display
+                Text("AGE \(lifecycle.currentAge)")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white)
+                
+                // Years remaining
+                Text("(\(max(0, lifeExpectancy - lifecycle.currentAge)) yrs left)")
+                    .font(.system(size: 9))
+                    .foregroundColor(.gray)
+            }
+            
+            // Year progress bar with animated gradient
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background track
+                    Capsule()
+                        .fill(Color.white.opacity(0.1))
+                        .frame(height: 6)
+                    
+                    // Progress fill
+                    Capsule()
+                        .fill(progressGradient)
+                        .frame(width: max(4, geometry.size.width * yearProgress), height: 6)
+                        .animation(.easeInOut(duration: 0.3), value: yearProgress)
+                    
+                    // Month markers (subtle dots)
+                    HStack(spacing: 0) {
+                        ForEach(0..<12, id: \.self) { month in
+                            Circle()
+                                .fill(month < Int(yearProgress * 12) ? Color.clear : Color.white.opacity(0.2))
+                                .frame(width: 2, height: 2)
+                            if month < 11 {
+                                Spacer()
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+            }
+            .frame(height: 6)
+            
+            // Life progress indicator (subtle)
+            HStack(spacing: 4) {
+                // Skull icon for memento mori
+                Text("💀")
+                    .font(.system(size: 8))
+                    .opacity(0.5)
+                
+                // Life progress mini bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.05))
+                        Capsule()
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: max(2, geometry.size.width * min(1.0, lifeProgress)))
+                    }
+                }
+                .frame(height: 2)
+                
+                Text("\(Int(lifeProgress * 100))% lived")
+                    .font(.system(size: 8))
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.white.opacity(0.03))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
                 )
         )
     }
