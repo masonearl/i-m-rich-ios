@@ -4825,7 +4825,7 @@ struct ExpandCompanySheet: View {
             cost: locType.cost,
             maxEmployees: locType.employeesRequired * 2
         )
-        NewsFeedManager.shared.addNews(category: .business, headline: "🏗️ NEW LOCATION - Opened \(locType.name) in \(selectedCity)!")
+        NewsFeedManager.shared.addNews(category: .markets, headline: "🏗️ NEW LOCATION - Opened \(locType.name) in \(selectedCity)!")
         dismiss()
     }
 }
@@ -5460,7 +5460,7 @@ struct TaxPlanTierRow: View {
     
     private func handleUpgrade() {
         if taxManager.upgradePlan(cash: &game.cash) {
-            NewsFeedManager.shared.addNews(category: .business, headline: "🏛️ TAX PLAN UPGRADED - Now saving \(Int(tier.taxReduction * 100))% on taxes with \(tier.name) plan!")
+            NewsFeedManager.shared.addNews(category: .economy, headline: "🏛️ TAX PLAN UPGRADED - Now saving \(Int(tier.taxReduction * 100))% on taxes with \(tier.name) plan!")
         }
     }
 }
