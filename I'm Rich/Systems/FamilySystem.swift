@@ -184,6 +184,12 @@ struct FamilyState: Codable {
     var weddingYear: Int?
     var totalChildExpenses: Double = 0
     
+    // NEW: Ready to Date system - player chooses when to start dating
+    var isReadyToDate: Bool = false
+    var hasSeenDatingIntro: Bool = false
+    var currentlyDating: PotentialPartner? = nil  // Active dating partner
+    var datesCompleted: Int = 0
+    
     var isMarried: Bool {
         partner?.isMarried == true
     }
@@ -194,6 +200,22 @@ struct FamilyState: Codable {
     
     var familySize: Int {
         1 + (isMarried ? 1 : 0) + children.count
+    }
+    
+    var canStartDating: Bool {
+        !isMarried && isReadyToDate
+    }
+    
+    var relationshipStatus: String {
+        if isMarried {
+            return "Married to \(partner?.name ?? "Partner")"
+        } else if let dating = currentlyDating {
+            return "Dating \(dating.name)"
+        } else if isReadyToDate {
+            return "Single & Ready to Mingle"
+        } else {
+            return "Focused on Career"
+        }
     }
 }
 
@@ -207,6 +229,8 @@ class FamilyManager: ObservableObject {
     
     @Published var currentEvent: FamilyEvent?
     @Published var showEventUI = false
+    @Published var showDatingUI = false        // Show dating pool sheet
+    @Published var showReadyToDatePrompt = false  // Initial "Ready to Date?" prompt
     
     private init() {
         if let data = UserDefaults.standard.data(forKey: "familyState"),
@@ -218,32 +242,112 @@ class FamilyManager: ObservableObject {
         }
     }
     
-    // MARK: - Dating Pool
-    func generateDatingPool() {
-        let names = ["Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Avery"]
-        let careers: [CareerPath?] = [.tech, .finance, .creator, nil, .trades]
-        
-        var pool: [PotentialPartner] = []
-        for i in 0..<4 {
-            let partner = PotentialPartner(
-                id: "partner_\(i)",
-                name: names.randomElement() ?? "Partner",
-                personality: PartnerPersonality.allCases.randomElement() ?? .supportive,
-                careerFocus: careers.randomElement() ?? nil,
-                wealthPreference: WealthDimension.allCases.randomElement() ?? .relationships,
-                attractivenessBonus: Int.random(in: 0...20)
-            )
-            pool.append(partner)
+    // MARK: - Ready to Date System
+    
+    /// Player decides to start dating
+    func setReadyToDate(_ ready: Bool) {
+        state.isReadyToDate = ready
+        if ready && state.datingPool.isEmpty {
+            generateDatingPool()
         }
-        state.datingPool = pool
+        if ready && !state.hasSeenDatingIntro {
+            state.hasSeenDatingIntro = true
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "💕 You're ready to date! Check out potential matches in your dating pool."
+            )
+        }
+        save()
+    }
+    
+    // MARK: - Dating Pool (Improved with interesting characters)
+    func generateDatingPool() {
+        // Create diverse, interesting potential partners
+        let potentialPartners: [PotentialPartner] = [
+            // Ambitious types
+            PotentialPartner(id: "partner_startup", name: "Sam", personality: .ambitious, careerFocus: .tech, wealthPreference: .financial, attractivenessBonus: 15),
+            PotentialPartner(id: "partner_lawyer", name: "Jordan", personality: .ambitious, careerFocus: .finance, wealthPreference: .legacy, attractivenessBonus: 12),
+            PotentialPartner(id: "partner_doctor", name: "Morgan", personality: .supportive, careerFocus: nil, wealthPreference: .health, attractivenessBonus: 18),
+            
+            // Creative types
+            PotentialPartner(id: "partner_artist", name: "Riley", personality: .freeSpirit, careerFocus: .creator, wealthPreference: .experiences, attractivenessBonus: 20),
+            PotentialPartner(id: "partner_musician", name: "Avery", personality: .freeSpirit, careerFocus: .creator, wealthPreference: .relationships, attractivenessBonus: 16),
+            
+            // Supportive types
+            PotentialPartner(id: "partner_teacher", name: "Taylor", personality: .supportive, careerFocus: nil, wealthPreference: .relationships, attractivenessBonus: 14),
+            PotentialPartner(id: "partner_nurse", name: "Casey", personality: .supportive, careerFocus: nil, wealthPreference: .health, attractivenessBonus: 13),
+            
+            // Traditional types
+            PotentialPartner(id: "partner_business", name: "Alex", personality: .traditional, careerFocus: .trades, wealthPreference: .legacy, attractivenessBonus: 11),
+            PotentialPartner(id: "partner_family", name: "Quinn", personality: .traditional, careerFocus: nil, wealthPreference: .relationships, attractivenessBonus: 17),
+            
+            // Wild cards
+            PotentialPartner(id: "partner_traveler", name: "Sage", personality: .freeSpirit, careerFocus: nil, wealthPreference: .experiences, attractivenessBonus: 19),
+            PotentialPartner(id: "partner_entrepreneur", name: "Blake", personality: .ambitious, careerFocus: .tech, wealthPreference: .financial, attractivenessBonus: 14),
+            PotentialPartner(id: "partner_athlete", name: "Drew", personality: .ambitious, careerFocus: nil, wealthPreference: .health, attractivenessBonus: 22),
+        ]
+        
+        // Shuffle and take 6 random partners
+        state.datingPool = Array(potentialPartners.shuffled().prefix(6))
+    }
+    
+    /// Refresh dating pool with new matches
+    func refreshDatingPool() {
+        generateDatingPool()
+        NewsFeedManager.shared.addNews(
+            category: .personal,
+            headline: "💫 New matches available! Check out your dating pool."
+        )
     }
     
     // MARK: - Dating Actions
+    
+    /// Get dating cost based on date type
+    func getDateCost(fancy: Bool) -> Double {
+        fancy ? 500 : 100
+    }
     
     /// Convenience method to start dating a partner (uses current age from LifeCycleManager)
     func startDating(_ partner: PotentialPartner) {
         let currentAge = LifeCycleManager.shared.currentAge
         date(partner: partner, currentAge: currentAge)
+    }
+    
+    /// Go on a date with a partner (costs money, builds relationship)
+    func goOnDate(with partner: PotentialPartner, fancy: Bool, cash: inout Double) -> Bool {
+        let cost = getDateCost(fancy: fancy)
+        guard cash >= cost else { return false }
+        guard state.isReadyToDate else { return false }
+        
+        cash -= cost
+        
+        // Update partner in pool
+        if var updatedPartner = state.datingPool.first(where: { $0.id == partner.id }) {
+            let relationshipGain = fancy ? 15 : 8
+            updatedPartner.relationshipLevel = min(100, updatedPartner.relationshipLevel + relationshipGain)
+            
+            if updatedPartner.meetingAge == 0 {
+                updatedPartner.meetingAge = LifeCycleManager.shared.currentAge
+            }
+            
+            if let index = state.datingPool.firstIndex(where: { $0.id == partner.id }) {
+                state.datingPool[index] = updatedPartner
+            }
+            
+            // Set as currently dating if relationship high enough
+            if updatedPartner.relationshipLevel >= 30 {
+                state.currentlyDating = updatedPartner
+            }
+        }
+        
+        state.datesCompleted += 1
+        
+        // Apply wealth impact
+        let experienceBonus = fancy ? 8 : 3
+        WealthManager.shared.applyImpact(WealthImpact(relationships: 5, experiences: experienceBonus))
+        
+        save()
+        return true
     }
     
     func date(partner: PotentialPartner, currentAge: Int) {
@@ -260,6 +364,20 @@ class FamilyManager: ObservableObject {
         
         // Apply wealth impact
         WealthManager.shared.applyImpact(WealthImpact(relationships: 5, experiences: 3))
+    }
+    
+    /// Break up with current dating partner
+    func breakUp() {
+        if let partner = state.currentlyDating {
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "💔 You and \(partner.name) have gone separate ways."
+            )
+            state.currentlyDating = nil
+            // Remove from dating pool too
+            state.datingPool.removeAll { $0.id == partner.id }
+            save()
+        }
     }
     
     func propose(to partner: PotentialPartner, weddingBudget: Double, currentYear: Int) -> Bool {
