@@ -399,10 +399,126 @@ struct ZonedGameView: View {
     func currentCareerSection(_ career: CareerPath) -> some View {
         VStack(spacing: 12) {
             careerHeader(career)
-            promotionProgress
+            
+            // Show promotion progress OR serial entrepreneur options
+            if game.isMaxCareer {
+                serialEntrepreneurSection
+            } else {
+                promotionProgress
+            }
         }
         .padding(16)
         .background(careerBackground)
+    }
+    
+    // MARK: - Serial Entrepreneur Section (Max Career)
+    @State private var showNewVentureSheet = false
+    @State private var showSellCompanySheet = false
+    @ObservedObject private var ventureManager = VentureManager.shared
+    
+    private var serialEntrepreneurSection: some View {
+        VStack(spacing: 12) {
+            // Congrats banner
+            HStack {
+                Text("👑")
+                    .font(.system(size: 24))
+                Text("You've reached the top!")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(AppColors.gold)
+                Spacer()
+            }
+            
+            Text("As CEO, you can now start new ventures or sell your company.")
+                .font(.system(size: 11))
+                .foregroundColor(AppColors.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // Current ventures summary
+            if ventureManager.state.ventures.count > 0 {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("YOUR VENTURES")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(AppColors.textMuted)
+                    
+                    ForEach(ventureManager.state.ventures) { venture in
+                        HStack {
+                            Text(venture.industry.icon)
+                                .font(.system(size: 14))
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(venture.name)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Text(venture.stage.rawValue)
+                                    .font(.system(size: 9))
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                            Spacer()
+                            Text(game.formatCompact(venture.valuation))
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(AppColors.mattGreen)
+                        }
+                        .padding(8)
+                        .background(AppColors.surfaceLight)
+                        .cornerRadius(8)
+                    }
+                }
+            }
+            
+            // Action buttons
+            HStack(spacing: 10) {
+                // Start New Venture
+                Button(action: { showNewVentureSheet = true }) {
+                    HStack {
+                        Text("🚀")
+                        Text("New Venture")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(AppColors.mattGreen)
+                    .cornerRadius(10)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // Sell Company (if has ventures)
+                if ventureManager.state.ventures.count > 0 {
+                    Button(action: { showSellCompanySheet = true }) {
+                        HStack {
+                            Text("💰")
+                            Text("Sell")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(AppColors.warning)
+                        .cornerRadius(10)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            
+            // Total empire value
+            if ventureManager.state.ventures.count > 0 {
+                HStack {
+                    Text("Empire Value:")
+                        .font(.system(size: 10))
+                        .foregroundColor(AppColors.textSecondary)
+                    Spacer()
+                    Text(game.formatCompact(ventureManager.state.totalValuation))
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(AppColors.gold)
+                }
+                .padding(.top, 4)
+            }
+        }
+        .sheet(isPresented: $showNewVentureSheet) {
+            NewVentureSheet(game: game)
+        }
+        .sheet(isPresented: $showSellCompanySheet) {
+            SellVentureSheet(game: game)
+        }
     }
     
     private func careerHeader(_ career: CareerPath) -> some View {
@@ -3229,5 +3345,388 @@ struct InvestmentDetailSheet: View {
             .disabled(game.cash < Double(investment.minInvestment))
         }
         .padding(.top, 8)
+    }
+}
+
+// MARK: - New Venture Sheet
+struct NewVentureSheet: View {
+    @ObservedObject var game: GameState
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var ventureManager = VentureManager.shared
+    @ObservedObject private var lifecycle = LifeCycleManager.shared
+    
+    @State private var ventureName = ""
+    @State private var selectedIndustry: Industry?
+    @State private var investmentAmount: Double = 100_000
+    
+    // Filter to venture-specific industries
+    var availableIndustries: [Industry] {
+        Industry.allCases.filter { $0.isVentureIndustry && game.cash >= $0.entryThreshold }
+    }
+    
+    var canStart: Bool {
+        !ventureName.isEmpty && selectedIndustry != nil && game.cash >= investmentAmount
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("🚀")
+                            .font(.system(size: 50))
+                        Text("Start a New Venture")
+                            .font(.title2.bold())
+                            .foregroundColor(.white)
+                        Text("Build your empire by launching companies in different industries.")
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                    
+                    // Company Name
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("COMPANY NAME")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        TextField("Enter company name...", text: $ventureName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .foregroundColor(.black)
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Industry Selection
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("SELECT INDUSTRY")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        if availableIndustries.isEmpty {
+                            Text("You need more cash to enter any industry. Keep hustling!")
+                                .font(.caption)
+                                .foregroundColor(AppColors.warning)
+                                .padding()
+                        } else {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                ForEach(availableIndustries, id: \.self) { industry in
+                                    IndustryCard(
+                                        industry: industry,
+                                        isSelected: selectedIndustry == industry,
+                                        canAfford: game.cash >= industry.entryThreshold
+                                    ) {
+                                        selectedIndustry = industry
+                                        investmentAmount = industry.entryThreshold
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Investment Amount
+                    if let industry = selectedIndustry {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("INITIAL INVESTMENT")
+                                .font(.caption.bold())
+                                .foregroundColor(AppColors.textMuted)
+                            
+                            HStack {
+                                Text("Min: \(game.formatCompact(industry.entryThreshold))")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.textSecondary)
+                                Spacer()
+                                Text("Your cash: \(game.formatCompact(game.cash))")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.mattGreen)
+                            }
+                            
+                            // Quick amounts
+                            HStack(spacing: 8) {
+                                ForEach([1.0, 2.0, 5.0, 10.0], id: \.self) { multiplier in
+                                    let amount = industry.entryThreshold * multiplier
+                                    if game.cash >= amount {
+                                        Button(action: { investmentAmount = amount }) {
+                                            Text(game.formatCompact(amount))
+                                                .font(.caption.bold())
+                                                .foregroundColor(investmentAmount == amount ? .black : .white)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 8)
+                                                .background(investmentAmount == amount ? AppColors.mattGreen : AppColors.surfaceLight)
+                                                .cornerRadius(8)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                }
+                            }
+                        }
+                        .padding()
+                        .cardStyle()
+                    }
+                    
+                    // Start Button
+                    Button(action: startVenture) {
+                        HStack {
+                            Text("🚀")
+                            Text("Launch \(ventureName.isEmpty ? "Venture" : ventureName)")
+                                .font(.headline.bold())
+                        }
+                        .foregroundColor(canStart ? .black : AppColors.textMuted)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(canStart ? AppColors.mattGreen : AppColors.surfaceLight)
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(!canStart)
+                    .padding(.top)
+                }
+                .padding()
+            }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle("New Venture")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    private func startVenture() {
+        guard let industry = selectedIndustry else { return }
+        
+        // Deduct cash
+        game.cash -= investmentAmount
+        
+        // Create venture
+        let _ = ventureManager.startVenture(
+            name: ventureName,
+            industry: industry,
+            initialInvestment: investmentAmount,
+            currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge
+        )
+        
+        dismiss()
+    }
+}
+
+// MARK: - Industry Card
+struct IndustryCard: View {
+    let industry: Industry
+    let isSelected: Bool
+    let canAfford: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Text(industry.icon)
+                    .font(.system(size: 28))
+                
+                Text(industry.rawValue)
+                    .font(.caption.bold())
+                    .foregroundColor(isSelected ? .black : .white)
+                    .lineLimit(1)
+                
+                Text(formatCompact(industry.entryThreshold))
+                    .font(.caption2)
+                    .foregroundColor(isSelected ? .black.opacity(0.7) : AppColors.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? AppColors.mattGreen : AppColors.surfaceLight)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? AppColors.mattGreen : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(!canAfford)
+        .opacity(canAfford ? 1.0 : 0.5)
+    }
+    
+    private func formatCompact(_ value: Double) -> String {
+        switch value {
+        case 1_000_000_000...: return String(format: "$%.0fB", value / 1_000_000_000)
+        case 1_000_000...: return String(format: "$%.0fM", value / 1_000_000)
+        case 1_000...: return String(format: "$%.0fK", value / 1_000)
+        default: return "$\(Int(value))"
+        }
+    }
+}
+
+// MARK: - Sell Venture Sheet
+struct SellVentureSheet: View {
+    @ObservedObject var game: GameState
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var ventureManager = VentureManager.shared
+    
+    @State private var selectedVenture: Venture?
+    @State private var showConfirmation = false
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("💰")
+                            .font(.system(size: 50))
+                        Text("Sell a Venture")
+                            .font(.title2.bold())
+                            .foregroundColor(.white)
+                        Text("Cash out on your hard work. Receive the full valuation in cash.")
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                    
+                    // Ventures list
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("YOUR VENTURES")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        ForEach(ventureManager.state.ventures) { venture in
+                            VentureRow(
+                                venture: venture,
+                                isSelected: selectedVenture?.id == venture.id,
+                                formatCompact: game.formatCompact
+                            ) {
+                                selectedVenture = venture
+                            }
+                        }
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Sell button
+                    if let venture = selectedVenture {
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("Sale Price:")
+                                    .foregroundColor(AppColors.textSecondary)
+                                Spacer()
+                                Text(game.formatCompact(venture.valuation))
+                                    .font(.title2.bold())
+                                    .foregroundColor(AppColors.mattGreen)
+                            }
+                            
+                            Button(action: { showConfirmation = true }) {
+                                HStack {
+                                    Text("💰")
+                                    Text("Sell \(venture.name)")
+                                        .font(.headline.bold())
+                                }
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(AppColors.warning)
+                                .cornerRadius(12)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        .padding()
+                        .cardStyle()
+                    }
+                }
+                .padding()
+            }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle("Sell Venture")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+            .alert("Confirm Sale", isPresented: $showConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Sell", role: .destructive) {
+                    if let venture = selectedVenture {
+                        let salePrice = ventureManager.sellVenture(venture)
+                        game.cash += salePrice
+                        game.totalEarned += salePrice
+                        dismiss()
+                    }
+                }
+            } message: {
+                if let venture = selectedVenture {
+                    Text("Sell \(venture.name) for \(game.formatCompact(venture.valuation))?")
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - Venture Row
+struct VentureRow: View {
+    let venture: Venture
+    let isSelected: Bool
+    let formatCompact: (Double) -> String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(venture.industry.icon)
+                    .font(.system(size: 24))
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(venture.name)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                    
+                    HStack(spacing: 8) {
+                        Text(venture.stage.rawValue)
+                            .font(.caption2)
+                            .foregroundColor(AppColors.textSecondary)
+                        
+                        Text("•")
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        Text("\(venture.employees) employees")
+                            .font(.caption2)
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(formatCompact(venture.valuation))
+                        .font(.subheadline.bold())
+                        .foregroundColor(AppColors.mattGreen)
+                    
+                    Text("+\(Int(venture.growthRate * 100))%/yr")
+                        .font(.caption2)
+                        .foregroundColor(AppColors.softGreen)
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? AppColors.mattGreen.opacity(0.2) : AppColors.surfaceLight)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? AppColors.mattGreen : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
