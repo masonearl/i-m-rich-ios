@@ -2653,19 +2653,46 @@ struct CompactHeader: View {
     
     private let trillionGoal: Double = 1_000_000_000_000
     
+    /// Format net worth as a live ticker with cents (fun to watch!)
+    private var netWorthTicker: String {
+        let value = game.netWorth
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        
+        // Always show full number with commas and cents
+        return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
+    }
+    
+    /// Font size scales down as numbers get bigger
+    private var tickerFontSize: CGFloat {
+        let value = game.netWorth
+        switch value {
+        case 0..<1_000: return 22
+        case 1_000..<100_000: return 20
+        case 100_000..<10_000_000: return 18
+        case 10_000_000..<1_000_000_000: return 16
+        default: return 14  // Billions+
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 8) {
             // Row 1: Net Worth + Age
             HStack(alignment: .center) {
-                // Net Worth (main focus)
+                // Net Worth (main focus) - LIVE TICKER with cents!
                 VStack(alignment: .leading, spacing: 2) {
                     Text("NET WORTH")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(AppColors.textMuted)
                     
-                    Text(game.formatCompact(game.netWorth))
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                    Text(netWorthTicker)
+                        .font(.system(size: tickerFontSize, weight: .bold, design: .monospaced))
                         .foregroundColor(AppColors.mattGreen)
+                        .contentTransition(.numericText())
+                        .animation(.easeInOut(duration: 0.1), value: game.netWorth)
                 }
                 
                 Spacer()
