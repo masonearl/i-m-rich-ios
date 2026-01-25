@@ -42,7 +42,13 @@ struct ZonedGameView: View {
                 .padding(.bottom, 6)
         }
         .background(AppColors.background.ignoresSafeArea())
+        .sheet(isPresented: $showPrestigeSheet) {
+            PrestigeSheet(game: game, lifecycle: lifecycle)
+        }
     }
+    
+    @State private var showPrestigeSheet = false
+    @ObservedObject private var prestigeManager = PrestigeManager.shared
     
     // MARK: - Top Bar
     
@@ -1253,44 +1259,7 @@ struct ZonedGameView: View {
             }
             
             // Prestige button (available at $1B+)
-            if game.netWorth >= 1_000_000_000 {
-                Button(action: {
-                    // Calculate prestige preview first
-                    let preview = PrestigeManager.shared.calculatePrestigePreview(
-                        currentEarnings: game.totalEarned,
-                        currentAge: lifecycle.currentAge,
-                        yearsPlayed: lifecycle.gameYearsPassed
-                    )
-                    PrestigeManager.shared.pendingPrestigePreview = preview
-                    PrestigeManager.shared.showPrestigeConfirmation = true
-                }) {
-                    HStack {
-                        Text("🔄 PRESTIGE")
-                            .font(.system(size: 12, weight: .bold))
-                        Spacer()
-                        Text("Reset with \(Int((PrestigeManager.shared.legacyMultiplier + 0.1) * 100))% bonus")
-                            .font(.system(size: 10))
-                    }
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(red: 1, green: 0.84, blue: 0))
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
-            } else {
-                HStack {
-                    Text("🔒 Prestige at $1B")
-                        .font(.system(size: 10))
-                        .foregroundColor(.gray)
-                    Spacer()
-                    Text("\(game.formatCompact(1_000_000_000 - game.netWorth)) to go")
-                        .font(.system(size: 10))
-                        .foregroundColor(.orange)
-                }
-            }
+            prestigeButton
         }
         .padding(16)
         .background(
@@ -1307,6 +1276,85 @@ struct ZonedGameView: View {
                         .stroke(Color(red: 1, green: 0.84, blue: 0).opacity(0.3), lineWidth: 1)
                 )
         )
+    }
+    
+    // MARK: - Prestige Button
+    var prestigeButton: some View {
+        Group {
+            if game.netWorth >= 1_000_000_000 {
+                Button(action: { showPrestigeSheet = true }) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("🔄 PRESTIGE")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("Reset with legacy bonuses")
+                                .font(.system(size: 9))
+                                .foregroundColor(.black.opacity(0.7))
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("\(String(format: "%.1f", PrestigeManager.shared.legacyMultiplier + 0.1))x")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("new multiplier")
+                                .font(.system(size: 9))
+                                .foregroundColor(.black.opacity(0.7))
+                        }
+                    }
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(
+                                LinearGradient(
+                                    colors: [AppColors.gold, AppColors.gold.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            } else {
+                // Progress to prestige
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("🔒 PRESTIGE")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(AppColors.textMuted)
+                        Spacer()
+                        Text("Unlocks at $1B")
+                            .font(.system(size: 10))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    
+                    // Progress bar
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(AppColors.surfaceLight)
+                            Capsule()
+                                .fill(AppColors.gold.opacity(0.5))
+                                .frame(width: max(2, geo.size.width * min(1.0, game.netWorth / 1_000_000_000)))
+                        }
+                    }
+                    .frame(height: 6)
+                    
+                    HStack {
+                        Text(game.formatCompact(game.netWorth))
+                            .font(.system(size: 9))
+                            .foregroundColor(AppColors.textSecondary)
+                        Spacer()
+                        Text("\(game.formatCompact(1_000_000_000 - game.netWorth)) to go")
+                            .font(.system(size: 9))
+                            .foregroundColor(AppColors.warning)
+                    }
+                }
+                .padding(12)
+                .background(AppColors.surfaceLight)
+                .cornerRadius(10)
+            }
+        }
     }
     
     var wealthDimensionsSection: some View {
@@ -3818,5 +3866,241 @@ struct VentureRow: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Prestige Sheet
+struct PrestigeSheet: View {
+    @ObservedObject var game: GameState
+    @ObservedObject var lifecycle: LifeCycleManager
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var prestigeManager = PrestigeManager.shared
+    @State private var showConfirmation = false
+    
+    var preview: PrestigePreview {
+        prestigeManager.calculatePrestigePreview(
+            currentEarnings: game.totalEarned,
+            currentAge: lifecycle.currentAge,
+            yearsPlayed: lifecycle.gameYearsPassed
+        )
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Text("🌟")
+                            .font(.system(size: 60))
+                        
+                        Text("START A NEW LIFE")
+                            .font(.system(size: 24, weight: .black))
+                            .foregroundColor(.white)
+                            .tracking(2)
+                        
+                        Text("Reset your progress and begin again with permanent bonuses")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Current Life Summary
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("THIS LIFE")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        HStack {
+                            statBox(icon: "💰", label: "Earned", value: game.formatCompact(game.totalEarned))
+                            statBox(icon: "📊", label: "Net Worth", value: game.formatCompact(game.netWorth))
+                            statBox(icon: "🎂", label: "Age", value: "\(lifecycle.currentAge)")
+                        }
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // What You'll Get
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("REWARDS FOR NEXT LIFE")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        prestigeReward(
+                            icon: "⚡",
+                            label: "Legacy Multiplier",
+                            current: String(format: "%.1fx", prestigeManager.legacyMultiplier),
+                            new: String(format: "%.1fx", preview.newLegacyMultiplier),
+                            color: AppColors.gold
+                        )
+                        
+                        prestigeReward(
+                            icon: "💵",
+                            label: "Starting Cash",
+                            current: game.formatCompact(prestigeManager.state.startingCashBonus),
+                            new: game.formatCompact(preview.startingCashBonus),
+                            color: AppColors.mattGreen
+                        )
+                        
+                        prestigeReward(
+                            icon: "🔄",
+                            label: "Lives Lived",
+                            current: "\(prestigeManager.livesLived)",
+                            new: "\(preview.newLivesCount)",
+                            color: AppColors.mattBlue
+                        )
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // What's Preserved
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("PRESERVED ACROSS LIVES")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        HStack(spacing: 20) {
+                            preservedItem(icon: "🎨", label: "Themes")
+                            preservedItem(icon: "📚", label: "Lessons")
+                            preservedItem(icon: "🏆", label: "Achievements")
+                        }
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // What's Reset
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("WILL BE RESET")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.warning)
+                        
+                        HStack {
+                            resetItem(icon: "💰", label: "Cash")
+                            resetItem(icon: "📈", label: "Investments")
+                            resetItem(icon: "💼", label: "Career")
+                            resetItem(icon: "🏢", label: "Company")
+                        }
+                    }
+                    .padding()
+                    .background(AppColors.warning.opacity(0.1))
+                    .cornerRadius(12)
+                    
+                    // Prestige Button
+                    Button(action: { showConfirmation = true }) {
+                        HStack {
+                            Text("🌟")
+                            Text("PRESTIGE NOW")
+                                .font(.headline.bold())
+                        }
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(AppColors.gold)
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.top, 10)
+                }
+                .padding()
+            }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle("Prestige")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+            .alert("Start New Life?", isPresented: $showConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Prestige", role: .destructive) {
+                    executePrestige()
+                }
+            } message: {
+                Text("Your cash, investments, career, and company will reset. Your legacy bonuses will increase.")
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    private func executePrestige() {
+        prestigeManager.prestige(
+            currentEarnings: game.totalEarned,
+            currentAge: lifecycle.currentAge,
+            yearsPlayed: lifecycle.gameYearsPassed,
+            themeManager: ThemeManager.shared,
+            educationManager: EducationManager.shared,
+            achievementManager: AchievementManager.shared
+        )
+        
+        // Reset game state for new life
+        game.resetForPrestige()
+        
+        dismiss()
+    }
+    
+    private func statBox(icon: String, label: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(icon)
+                .font(.title2)
+            Text(value)
+                .font(.subheadline.bold())
+                .foregroundColor(.white)
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(AppColors.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(AppColors.surfaceLight)
+        .cornerRadius(10)
+    }
+    
+    private func prestigeReward(icon: String, label: String, current: String, new: String, color: Color) -> some View {
+        HStack {
+            Text(icon)
+                .font(.title3)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                Text("\(current) → \(new)")
+                    .font(.caption)
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            
+            Spacer()
+            
+            Text("+\(new)")
+                .font(.subheadline.bold())
+                .foregroundColor(color)
+        }
+        .padding()
+        .background(color.opacity(0.1))
+        .cornerRadius(10)
+    }
+    
+    private func preservedItem(icon: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(icon)
+                .font(.title3)
+            Text(label)
+                .font(.caption)
+                .foregroundColor(AppColors.textSecondary)
+        }
+    }
+    
+    private func resetItem(icon: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(icon)
+                .font(.caption)
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(AppColors.warning)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
