@@ -512,7 +512,7 @@ struct ZonedGameView: View {
                         .font(.system(size: 10))
                         .foregroundColor(AppColors.textSecondary)
                     Spacer()
-                    Text(game.formatCompact(ventureManager.state.totalValuation))
+                    Text(game.formatCompact(ventureManager.state.totalVentureValuation))
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(AppColors.gold)
                 }
@@ -1481,23 +1481,373 @@ struct ZonedGameView: View {
         )
     }
     
+    @ObservedObject private var familyManager = FamilyManager.shared
+    @State private var showDatingSheet = false
+    @State private var showProposeAlert = false
+    @State private var showHaveKidAlert = false
+    
     var familySection: some View {
+        VStack(spacing: 12) {
+            // Header
+            HStack {
+                Text("💕")
+                Text("RELATIONSHIPS")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .tracking(1.5)
+                Spacer()
+                Text(familyManager.state.relationshipStatus)
+                    .font(.system(size: 10))
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            
+            // Relationship Status
+            if familyManager.state.isMarried, let partner = familyManager.state.partner {
+                // Married view
+                marriedPartnerView(partner)
+                
+                // Have kids option
+                if lifecycle.currentAge >= 28 && familyManager.state.children.count < 3 {
+                    Button(action: { showHaveKidAlert = true }) {
+                        HStack {
+                            Text("👶")
+                            Text("Have a Child")
+                                .font(.system(size: 12, weight: .bold))
+                            Spacer()
+                            Text("$50K")
+                                .font(.system(size: 10))
+                                .foregroundColor(game.cash >= 50000 ? AppColors.mattGreen : AppColors.warning)
+                        }
+                        .foregroundColor(.white)
+                        .padding(12)
+                        .background(AppColors.surfaceLight)
+                        .cornerRadius(10)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(game.cash < 50000)
+                }
+                
+            } else if let dating = familyManager.state.currentlyDating {
+                // Currently dating view
+                datingPartnerView(dating)
+                
+            } else if familyManager.state.isReadyToDate {
+                // Ready to date - show pool
+                datingPoolSection
+                
+            } else if lifecycle.currentAge >= 22 {
+                // Not ready to date yet - show prompt
+                readyToDatePrompt
+            } else {
+                // Too young
+                Text("Focus on building your career first!")
+                    .font(.system(size: 11))
+                    .foregroundColor(AppColors.textMuted)
+            }
+            
+            // Children section
+            if !familyManager.state.children.isEmpty {
+                Divider().background(AppColors.border)
+                childrenSection
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(AppColors.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.pink.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .sheet(isPresented: $showDatingSheet) {
+            DatingPoolSheet(game: game)
+        }
+        .alert("Have a Child?", isPresented: $showHaveKidAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Yes! ($50K)") {
+                if game.cash >= 50000 {
+                    game.cash -= 50000
+                    if let child = familyManager.haveChild(currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge) {
+                        NewsFeedManager.shared.addNews("👶", "NEW BABY!", "Welcome \(child.name) to the family!")
+                    }
+                }
+            }
+        } message: {
+            Text("Children bring joy but also cost money. Are you ready to start a family?")
+        }
+        .alert("Propose to \(familyManager.state.currentlyDating?.name ?? "Partner")?", isPresented: $showProposeAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Propose! 💍 ($25K)") {
+                if let partner = familyManager.state.currentlyDating, game.cash >= 25000 {
+                    game.cash -= 25000
+                    if familyManager.propose(to: partner, weddingBudget: 25000, currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge) {
+                        NewsFeedManager.shared.addNews("💍", "ENGAGED!", "You're getting married to \(partner.name)!")
+                    }
+                }
+            }
+        } message: {
+            Text("Pop the question and plan the wedding!")
+        }
+    }
+    
+    var readyToDatePrompt: some View {
+        VStack(spacing: 10) {
+            Text("Ready to find love?")
+                .font(.subheadline.bold())
+                .foregroundColor(.white)
+            
+            Text("Start dating to find a partner, get married, and build a family.")
+                .font(.caption)
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+            
+            Button(action: {
+                familyManager.setReadyToDate(true)
+            }) {
+                HStack {
+                    Text("💕")
+                    Text("Start Dating")
+                        .font(.system(size: 13, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(colors: [Color.pink, Color.red.opacity(0.8)], startPoint: .leading, endPoint: .trailing)
+                )
+                .cornerRadius(10)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+    }
+    
+    var datingPoolSection: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("Your Matches")
+                    .font(.caption.bold())
+                    .foregroundColor(AppColors.textMuted)
+                Spacer()
+                Button(action: { showDatingSheet = true }) {
+                    Text("View All")
+                        .font(.caption)
+                        .foregroundColor(AppColors.mattBlue)
+                }
+            }
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(familyManager.state.datingPool.prefix(4)) { partner in
+                        DatingPoolCard(partner: partner, game: game)
+                    }
+                }
+            }
+        }
+    }
+    
+    func marriedPartnerView(_ partner: PotentialPartner) -> some View {
+        HStack(spacing: 12) {
+            Text(partner.personality.icon)
+                .font(.system(size: 28))
+            
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(partner.name)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                    Text("💍")
+                }
+                Text(partner.personality.rawValue)
+                    .font(.caption)
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("❤️ \(partner.relationshipLevel)")
+                    .font(.caption.bold())
+                    .foregroundColor(.red)
+                if let income = partner.incomeContribution, income > 0 {
+                    Text("+\(game.formatCompact(income))/yr")
+                        .font(.caption2)
+                        .foregroundColor(AppColors.mattGreen)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color.pink.opacity(0.15))
+        .cornerRadius(10)
+    }
+    
+    func datingPartnerView(_ partner: PotentialPartner) -> some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                Text(partner.personality.icon)
+                    .font(.system(size: 28))
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Dating \(partner.name)")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                    Text(partner.personality.rawValue)
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                
+                Spacer()
+                
+                // Relationship progress
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("❤️ \(partner.relationshipLevel)/100")
+                        .font(.caption.bold())
+                        .foregroundColor(.red)
+                    if partner.canPropose {
+                        Text("Ready to propose!")
+                            .font(.caption2)
+                            .foregroundColor(AppColors.gold)
+                    }
+                }
+            }
+            
+            // Date buttons
+            HStack(spacing: 10) {
+                Button(action: {
+                    _ = familyManager.goOnDate(with: partner, fancy: false, cash: &game.cash)
+                }) {
+                    VStack(spacing: 2) {
+                        Text("☕")
+                        Text("Date")
+                            .font(.caption2.bold())
+                        Text("$100")
+                            .font(.system(size: 8))
+                            .foregroundColor(AppColors.textMuted)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(AppColors.surfaceLight)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(game.cash < 100)
+                
+                Button(action: {
+                    _ = familyManager.goOnDate(with: partner, fancy: true, cash: &game.cash)
+                }) {
+                    VStack(spacing: 2) {
+                        Text("🍾")
+                        Text("Fancy")
+                            .font(.caption2.bold())
+                        Text("$500")
+                            .font(.system(size: 8))
+                            .foregroundColor(AppColors.textMuted)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(AppColors.surfaceLight)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(game.cash < 500)
+                
+                if partner.canPropose {
+                    Button(action: { showProposeAlert = true }) {
+                        VStack(spacing: 2) {
+                            Text("💍")
+                            Text("Propose")
+                                .font(.caption2.bold())
+                            Text("$25K")
+                                .font(.system(size: 8))
+                                .foregroundColor(AppColors.textMuted)
+                        }
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(AppColors.gold)
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(game.cash < 25000)
+                }
+                
+                Button(action: {
+                    familyManager.breakUp()
+                }) {
+                    VStack(spacing: 2) {
+                        Text("💔")
+                        Text("Break Up")
+                            .font(.caption2.bold())
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(AppColors.warning.opacity(0.3))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .padding(12)
+        .background(Color.pink.opacity(0.1))
+        .cornerRadius(10)
+    }
+    
+    var childrenSection: some View {
         VStack(spacing: 8) {
             HStack {
                 Text("👨‍👩‍👧‍👦")
-                Text("DYNASTY")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.white)
+                Text("CHILDREN (\(familyManager.state.children.count))")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(AppColors.textMuted)
                 Spacer()
+                if familyManager.state.totalChildExpenses > 0 {
+                    Text("\(game.formatCompact(familyManager.state.totalChildExpenses))/yr")
+                        .font(.system(size: 9))
+                        .foregroundColor(AppColors.warning)
+                }
             }
             
-            FamilyOverviewView(compact: true)
+            ForEach(familyManager.state.children) { child in
+                childRow(child)
+            }
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white.opacity(0.03))
-        )
+    }
+    
+    func childRow(_ child: Child) -> some View {
+        let stage = child.lifeStage(currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge)
+        let age = child.age(currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge)
+        
+        return HStack(spacing: 10) {
+            Text(stage.icon)
+                .font(.system(size: 20))
+            
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(child.name)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(child.personality.icon)
+                        .font(.system(size: 10))
+                }
+                Text("\(stage.rawValue), Age \(age)")
+                    .font(.system(size: 10))
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("❤️ \(child.relationshipWithParent)")
+                    .font(.system(size: 9))
+                    .foregroundColor(.red)
+                Text("\(game.formatCompact(child.yearlyExpense))/yr")
+                    .font(.system(size: 8))
+                    .foregroundColor(AppColors.warning)
+            }
+        }
+        .padding(8)
+        .background(AppColors.surfaceLight)
+        .cornerRadius(8)
     }
 }
 
@@ -4456,5 +4806,306 @@ struct LocationTypeRow: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Dating Pool Card
+struct DatingPoolCard: View {
+    let partner: PotentialPartner
+    @ObservedObject var game: GameState
+    @ObservedObject private var familyManager = FamilyManager.shared
+    
+    var body: some View {
+        Button(action: {
+            _ = familyManager.goOnDate(with: partner, fancy: false, cash: &game.cash)
+        }) {
+            VStack(spacing: 6) {
+                Text(partner.personality.icon)
+                    .font(.system(size: 28))
+                
+                Text(partner.name)
+                    .font(.caption.bold())
+                    .foregroundColor(.white)
+                
+                Text(partner.personality.rawValue)
+                    .font(.system(size: 8))
+                    .foregroundColor(AppColors.textMuted)
+                
+                if partner.relationshipLevel > 0 {
+                    HStack(spacing: 2) {
+                        Text("❤️")
+                            .font(.system(size: 8))
+                        Text("\(partner.relationshipLevel)")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.red)
+                    }
+                } else {
+                    Text("Date $100")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(AppColors.mattGreen)
+                }
+            }
+            .frame(width: 75)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.pink.opacity(0.15))
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(game.cash < 100)
+    }
+}
+
+// MARK: - Dating Pool Sheet
+struct DatingPoolSheet: View {
+    @ObservedObject var game: GameState
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var familyManager = FamilyManager.shared
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("💕")
+                            .font(.system(size: 50))
+                        
+                        Text("DATING POOL")
+                            .font(.system(size: 20, weight: .black))
+                            .foregroundColor(.white)
+                            .tracking(2)
+                        
+                        Text("Find your perfect match")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Currently dating
+                    if let dating = familyManager.state.currentlyDating {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("CURRENTLY DATING")
+                                .font(.caption.bold())
+                                .foregroundColor(AppColors.textMuted)
+                            
+                            CurrentDatingCard(partner: dating, game: game)
+                        }
+                        .padding()
+                        .cardStyle()
+                    }
+                    
+                    // Available matches
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("AVAILABLE MATCHES")
+                                .font(.caption.bold())
+                                .foregroundColor(AppColors.textMuted)
+                            Spacer()
+                            Button(action: {
+                                familyManager.refreshDatingPool()
+                            }) {
+                                Text("🔄 Refresh")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.mattBlue)
+                            }
+                        }
+                        
+                        ForEach(familyManager.state.datingPool) { partner in
+                            DatingPartnerRow(partner: partner, game: game)
+                        }
+                    }
+                    .padding()
+                    .cardStyle()
+                }
+                .padding()
+            }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle("Dating")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - Current Dating Card
+struct CurrentDatingCard: View {
+    let partner: PotentialPartner
+    @ObservedObject var game: GameState
+    @ObservedObject private var familyManager = FamilyManager.shared
+    @State private var showProposeAlert = false
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                Text(partner.personality.icon)
+                    .font(.system(size: 36))
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(partner.name)
+                        .font(.headline.bold())
+                        .foregroundColor(.white)
+                    Text(partner.personality.description)
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("❤️ \(partner.relationshipLevel)/100")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.red)
+                    if partner.canPropose {
+                        Text("Ready to propose!")
+                            .font(.caption2)
+                            .foregroundColor(AppColors.gold)
+                    }
+                }
+            }
+            
+            // Progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(AppColors.surfaceLight)
+                    Capsule()
+                        .fill(Color.red)
+                        .frame(width: geo.size.width * (Double(partner.relationshipLevel) / 100))
+                }
+            }
+            .frame(height: 8)
+            
+            // Actions
+            HStack(spacing: 10) {
+                Button(action: {
+                    _ = familyManager.goOnDate(with: partner, fancy: false, cash: &game.cash)
+                }) {
+                    VStack(spacing: 2) {
+                        Text("☕ Date")
+                            .font(.caption.bold())
+                        Text("$100 • +8❤️")
+                            .font(.system(size: 9))
+                            .foregroundColor(AppColors.textMuted)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(AppColors.surfaceLight)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Button(action: {
+                    _ = familyManager.goOnDate(with: partner, fancy: true, cash: &game.cash)
+                }) {
+                    VStack(spacing: 2) {
+                        Text("🍾 Fancy")
+                            .font(.caption.bold())
+                        Text("$500 • +15❤️")
+                            .font(.system(size: 9))
+                            .foregroundColor(AppColors.textMuted)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(AppColors.surfaceLight)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                if partner.canPropose {
+                    Button(action: { showProposeAlert = true }) {
+                        VStack(spacing: 2) {
+                            Text("💍 Propose")
+                                .font(.caption.bold())
+                            Text("$25K")
+                                .font(.system(size: 9))
+                                .foregroundColor(.black.opacity(0.7))
+                        }
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(AppColors.gold)
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+        }
+        .padding()
+        .background(Color.pink.opacity(0.15))
+        .cornerRadius(12)
+        .alert("Propose?", isPresented: $showProposeAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Yes! 💍") {
+                if game.cash >= 25000 {
+                    game.cash -= 25000
+                    _ = familyManager.propose(to: partner, weddingBudget: 25000, currentYear: LifeCycleManager.shared.gameYearsPassed + LifeCycleManager.shared.startingAge)
+                }
+            }
+        } message: {
+            Text("Pop the question to \(partner.name)? This costs $25K for the ring and wedding.")
+        }
+    }
+}
+
+// MARK: - Dating Partner Row
+struct DatingPartnerRow: View {
+    let partner: PotentialPartner
+    @ObservedObject var game: GameState
+    @ObservedObject private var familyManager = FamilyManager.shared
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(partner.personality.icon)
+                .font(.system(size: 28))
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(partner.name)
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                
+                HStack(spacing: 6) {
+                    Text(partner.personality.rawValue)
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                    
+                    if partner.relationshipLevel > 0 {
+                        Text("• ❤️\(partner.relationshipLevel)")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            Button(action: {
+                _ = familyManager.goOnDate(with: partner, fancy: false, cash: &game.cash)
+            }) {
+                Text("Date $100")
+                    .font(.caption.bold())
+                    .foregroundColor(game.cash >= 100 ? .black : .gray)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(game.cash >= 100 ? AppColors.mattGreen : AppColors.surfaceLight)
+                    )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(game.cash < 100)
+        }
+        .padding()
+        .background(AppColors.surfaceLight)
+        .cornerRadius(10)
     }
 }
