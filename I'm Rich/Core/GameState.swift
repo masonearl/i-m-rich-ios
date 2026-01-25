@@ -748,8 +748,8 @@ class GameState: ObservableObject {
             
             // Get the investment's sentiment (affects returns mildly)
             let sentiment = InvestmentSentimentManager.shared.getSentiment(for: investment.id)
-            // Sentiment multiplier is now gentler (0.8 to 1.2 range instead of full range)
-            let sentimentMultiplier = 0.9 + (sentiment.returnMultiplier * 0.2)
+            // Sentiment multiplier is now gentler (0.9 to 1.1 range instead of full range)
+            let sentimentMultiplier = 0.9 + (sentiment.level.returnMultiplier * 0.2)
             
             // Base annual return (e.g., 0.10 = 10%)
             let baseReturn = investment.baseReturn
