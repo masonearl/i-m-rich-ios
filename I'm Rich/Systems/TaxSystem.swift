@@ -443,13 +443,51 @@ struct TaxOverviewView: View {
     @ObservedObject var taxManager = TaxManager.shared
     @ObservedObject var game: GameState
     
+    // Calculate estimated annual income from all sources
+    var salaryPerYear: Double {
+        game.currentRole?.salary ?? 0
+    }
+    
+    var hustlePerYear: Double {
+        game.autoTapperIncomePerSecond * LifeCycleConstants.secondsPerGameYear
+    }
+    
+    var investmentReturnsPerYear: Double {
+        // Estimate based on current portfolio and average returns
+        var totalReturns: Double = 0
+        for investment in game.investments where investment.amountInvested > 0 {
+            totalReturns += investment.amountInvested * investment.baseReturn
+        }
+        return totalReturns
+    }
+    
+    var currentUnrealizedGains: Double {
+        game.totalUnrealizedGains
+    }
+    
+    var passivePerYear: Double {
+        var income: Double = 0
+        for upgrade in game.upgrades where upgrade.purchased {
+            if case .passiveIncome(let amount) = upgrade.effect {
+                income += amount * LifeCycleConstants.secondsPerGameYear
+            }
+        }
+        for product in game.products where product.successful {
+            income += product.ongoingRevenue * LifeCycleConstants.secondsPerGameYear
+        }
+        return income
+    }
+    
+    var totalAnnualIncome: Double {
+        salaryPerYear + hustlePerYear + investmentReturnsPerYear + passivePerYear
+    }
+    
     var incomeBreakdown: [(String, String, Double, Color)] {
-        let income = taxManager.state.yearToDateIncome
         return [
-            ("💼", "Salary", income.salary, .blue),
-            ("💪", "Hustle", income.hustle, .green),
-            ("📈", "Investments", income.investment, .purple),
-            ("🔄", "Passive", income.passive, .orange)
+            ("💼", "Salary", salaryPerYear, .blue),
+            ("💪", "Hustle", hustlePerYear, .green),
+            ("📈", "Investments", investmentReturnsPerYear, .purple),
+            ("🔄", "Passive", passivePerYear, .orange)
         ]
     }
     
@@ -457,17 +495,17 @@ struct TaxOverviewView: View {
         VStack(spacing: 12) {
             // Header
             HStack {
-                Text("🏛️")
-                Text("TAX CENTER")
+                Text("💰")
+                Text("INCOME & TAXES")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.white)
                 Spacer()
-                Text("\(Int(taxManager.effectiveTaxRate(for: taxManager.state.yearToDateIncome.total) * 100))% effective")
-                    .font(.system(size: 10))
-                    .foregroundColor(.gray)
+                Text(game.formatCompact(totalAnnualIncome) + "/yr")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(AppColors.mattGreen)
             }
             
-            // Income breakdown
+            // Income breakdown (estimated annual)
             VStack(spacing: 6) {
                 ForEach(incomeBreakdown, id: \.1) { icon, label, amount, color in
                     HStack {
@@ -477,36 +515,62 @@ struct TaxOverviewView: View {
                             .font(.system(size: 10))
                             .foregroundColor(.gray)
                         Spacer()
-                        Text(game.formatCompact(amount))
+                        Text(game.formatCompact(amount) + "/yr")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(color)
+                            .foregroundColor(amount > 0 ? color : .gray)
                     }
-                }
-                
-                Divider().background(Color.gray.opacity(0.3))
-                
-                HStack {
-                    Text("Total YTD")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white)
-                    Spacer()
-                    Text(game.formatCompact(taxManager.state.yearToDateIncome.total))
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
                 }
             }
             
-            // Estimated tax
+            // Investment details (if any investments)
+            if game.totalInvestmentValue > 0 {
+                Divider().background(Color.gray.opacity(0.3))
+                
+                HStack {
+                    Text("📊 Portfolio Value")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                    Spacer()
+                    Text(game.formatCompact(game.totalInvestmentValue))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.purple)
+                }
+                
+                HStack {
+                    Text("📈 Unrealized Gains")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                    Spacer()
+                    Text((currentUnrealizedGains >= 0 ? "+" : "") + game.formatCompact(currentUnrealizedGains))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(currentUnrealizedGains >= 0 ? .green : .red)
+                }
+            }
+            
+            Divider().background(Color.gray.opacity(0.3))
+            
+            // Total and tax estimate
             HStack {
-                Text("Est. Tax Bill")
+                Text("Est. Taxes")
                     .font(.system(size: 10))
                     .foregroundColor(.gray)
                 Spacer()
-                Text(game.formatCompact(taxManager.calculateYearEndTaxes()))
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.red)
+                
+                let estimatedTax = taxManager.calculateIncomeTax(on: totalAnnualIncome)
+                let taxReduction = taxManager.state.currentPlanTier.taxReduction
+                let afterReduction = estimatedTax * (1 - taxReduction)
+                
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(game.formatCompact(afterReduction) + "/yr")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.red)
+                    if taxReduction > 0 {
+                        Text("-\(Int(taxReduction * 100))% saved")
+                            .font(.system(size: 8))
+                            .foregroundColor(AppColors.mattGreen)
+                    }
+                }
             }
-            .padding(.top, 4)
         }
         .padding(12)
         .background(
