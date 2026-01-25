@@ -438,9 +438,8 @@ class FamilyManager: ObservableObject {
         
         // Breaking news!
         NewsFeedManager.shared.addNews(
-            "💎",
-            "TIFFANY'S TASTE IS EXPENSIVE",
-            "Your new spouse has... refined taste. Half your assets are now funding shopping sprees. Should've gotten a prenup!"
+            category: .personal,
+            headline: "💎 TIFFANY'S TASTE IS EXPENSIVE - Half your assets are now funding shopping sprees. Should've gotten a prenup!"
         )
         
         return totalLoss
