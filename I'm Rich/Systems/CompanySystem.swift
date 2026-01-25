@@ -53,17 +53,24 @@ enum Department: String, Codable, CaseIterable, Identifiable {
     }
     
     /// Maximum employees per department, scales with company size tier
+    /// INCREASED: Now supports much larger companies (10,000+ total employees possible)
     func maxEmployees(companyTier: Int) -> Int {
         // Tier 0 = Solo, 1 = Startup, 2 = Small, etc.
+        // Base values significantly increased for bigger companies
         let base: Int
         switch self {
-        case .engineering: base = 10
-        case .sales: base = 8
-        case .marketing: base = 5
-        case .hr: base = 3
-        case .finance: base = 5
+        case .engineering: base = 100   // Was 10 - now supports 600 engineers at max tier
+        case .sales: base = 80          // Was 8 - now supports 480 salespeople at max tier
+        case .marketing: base = 50      // Was 5 - now supports 300 marketers at max tier
+        case .hr: base = 30             // Was 3 - now supports 180 HR at max tier
+        case .finance: base = 50        // Was 5 - now supports 300 analysts at max tier
         }
         return base * max(1, companyTier)
+    }
+    
+    /// Get the current max for display purposes
+    func maxForDisplay(companyTier: Int) -> String {
+        "\(maxEmployees(companyTier: companyTier))"
     }
 }
 
@@ -499,13 +506,15 @@ struct EmployeeCategory: Identifiable, Codable {
         Double(count) * baseSalary
     }
     
+    // INCREASED: maxLevel now supports much larger companies
+    // Max employees = maxLevel * 10 (e.g., maxLevel 100 = 1000 employees per category)
     static let categories: [EmployeeCategory] = [
-        EmployeeCategory(id: "intern", name: "Interns", icon: "👶", baseSalary: 30_000, count: 0, maxLevel: 10),
-        EmployeeCategory(id: "associate", name: "Associates", icon: "👤", baseSalary: 60_000, count: 0, maxLevel: 10),
-        EmployeeCategory(id: "manager", name: "Managers", icon: "👔", baseSalary: 120_000, count: 0, maxLevel: 10),
-        EmployeeCategory(id: "director", name: "Directors", icon: "📊", baseSalary: 250_000, count: 0, maxLevel: 10),
-        EmployeeCategory(id: "vp", name: "VPs", icon: "🎯", baseSalary: 500_000, count: 0, maxLevel: 10),
-        EmployeeCategory(id: "executive", name: "Executives", icon: "👑", baseSalary: 1_000_000, count: 0, maxLevel: 5),
+        EmployeeCategory(id: "intern", name: "Interns", icon: "👶", baseSalary: 30_000, count: 0, maxLevel: 100),        // Max 1000
+        EmployeeCategory(id: "associate", name: "Associates", icon: "👤", baseSalary: 60_000, count: 0, maxLevel: 100),  // Max 1000
+        EmployeeCategory(id: "manager", name: "Managers", icon: "👔", baseSalary: 120_000, count: 0, maxLevel: 50),      // Max 500
+        EmployeeCategory(id: "director", name: "Directors", icon: "📊", baseSalary: 250_000, count: 0, maxLevel: 25),    // Max 250
+        EmployeeCategory(id: "vp", name: "VPs", icon: "🎯", baseSalary: 500_000, count: 0, maxLevel: 15),                // Max 150
+        EmployeeCategory(id: "executive", name: "Executives", icon: "👑", baseSalary: 1_000_000, count: 0, maxLevel: 10), // Max 100
     ]
 }
 
