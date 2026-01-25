@@ -1068,168 +1068,15 @@ struct ZonedGameView: View {
     
     var companyOverview: some View {
         let cm = CompanyManager.shared
-        let staffingPercent = Int(cm.staffingLevel * 100)
         
         return VStack(spacing: 12) {
-            // Header row
-            HStack {
-                Text("🏢")
-                    .font(.system(size: 24))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(cm.state.name)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-                    HStack(spacing: 4) {
-                        Text(cm.state.companyTierIcon)
-                            .font(.system(size: 10))
-                        Text(cm.state.companyTier)
-                            .font(.system(size: 10))
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("Valuation")
-                        .font(.system(size: 9))
-                        .foregroundColor(AppColors.textMuted)
-                    Text(game.formatCompact(cm.state.companyValuation))
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(AppColors.purple)
-                }
-            }
-            
+            companyHeaderRow(cm: cm)
             Divider().background(AppColors.border)
-            
-            // Stats grid
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                // Employees
-                companyStatCell(
-                    icon: "👥",
-                    label: "STAFF",
-                    value: "\(cm.state.totalEmployees)/\(cm.requiredEmployees)",
-                    color: cm.isUnderstaffed ? AppColors.warning : AppColors.mattGreen
-                )
-                
-                // Staffing Level
-                companyStatCell(
-                    icon: staffingPercent >= 100 ? "✅" : "⚠️",
-                    label: "STAFFING",
-                    value: "\(min(staffingPercent, 150))%",
-                    color: cm.isUnderstaffed ? AppColors.warning : AppColors.mattGreen
-                )
-                
-                // Annual Payroll
-                companyStatCell(
-                    icon: "💰",
-                    label: "PAYROLL/YR",
-                    value: game.formatCompact(cm.annualPayroll),
-                    color: AppColors.textSecondary
-                )
-            }
-            
-            // Department breakdown (compact)
-            HStack(spacing: 6) {
-                ForEach(Department.allCases, id: \.self) { dept in
-                    let count = cm.getDepartmentCount(dept)
-                    HStack(spacing: 2) {
-                        Text(dept.icon)
-                            .font(.system(size: 10))
-                        Text("\(count)")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(count > 0 ? .white : AppColors.textMuted)
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule().fill(count > 0 ? AppColors.surfaceLight : Color.clear)
-                    )
-                }
-            }
-            
-            // Staffing warning if needed
-            if cm.isUnderstaffed {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(AppColors.warning)
-                    Text(cm.staffingStatus.message)
-                        .font(.system(size: 10))
-                        .foregroundColor(AppColors.warning)
-                }
-                .padding(8)
-                .frame(maxWidth: .infinity)
-                .background(AppColors.warning.opacity(0.15))
-                .cornerRadius(8)
-            }
-            
-            // Locations summary (if any)
-            if !cm.state.locations.isEmpty {
-                VStack(spacing: 6) {
-                    HStack {
-                        Text("📍")
-                        Text("LOCATIONS")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(AppColors.textMuted)
-                        Spacer()
-                        Text("\(cm.state.locations.count)")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                    
-                    ForEach(cm.state.locations) { location in
-                        HStack(spacing: 6) {
-                            Text(location.icon)
-                                .font(.system(size: 10))
-                            Text(location.name)
-                                .font(.system(size: 9))
-                                .foregroundColor(.white)
-                            Text("• \(location.city)")
-                                .font(.system(size: 9))
-                                .foregroundColor(AppColors.textMuted)
-                            Spacer()
-                        }
-                    }
-                }
-                .padding(10)
-                .background(AppColors.surfaceLight)
-                .cornerRadius(8)
-            }
-            
+            companyStatsGrid(cm: cm)
+            companyDepartmentRow(cm: cm)
+            companyWarningsAndLocations(cm: cm)
             Divider().background(AppColors.border)
-            
-            // Action buttons
-            HStack(spacing: 10) {
-                // Expand button
-                Button(action: { showExpandSheet = true }) {
-                    HStack(spacing: 4) {
-                        Text("🏗️")
-                            .font(.system(size: 12))
-                        Text("EXPAND")
-                            .font(.system(size: 10, weight: .bold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(AppColors.mattBlue)
-                    .cornerRadius(8)
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                // Sell button
-                Button(action: { showSellCompanyAlert = true }) {
-                    HStack(spacing: 4) {
-                        Text("💰")
-                            .font(.system(size: 12))
-                        Text("SELL")
-                            .font(.system(size: 10, weight: .bold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(AppColors.warning.opacity(0.8))
-                    .cornerRadius(8)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
+            companyActionButtons
         }
         .padding(16)
         .background(
@@ -1245,7 +1092,6 @@ struct ZonedGameView: View {
             Button("Sell for \(game.formatCompact(cm.salePrice))", role: .destructive) {
                 let proceeds = cm.sellCompany()
                 game.cash += proceeds
-                NewsFeedManager.shared.addNews("💼", "SOLD COMPANY", "You sold your company for \(game.formatCompact(proceeds))!")
             }
         } message: {
             Text("Your company is worth \(game.formatCompact(cm.salePrice)). You can start a new company after selling.")
@@ -1257,6 +1103,125 @@ struct ZonedGameView: View {
     
     @State private var showExpandSheet = false
     @State private var showSellCompanyAlert = false
+    
+    private func companyHeaderRow(cm: CompanyManager) -> some View {
+        HStack {
+            Text("🏢").font(.system(size: 24))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(cm.state.name)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                HStack(spacing: 4) {
+                    Text(cm.state.companyTierIcon).font(.system(size: 10))
+                    Text(cm.state.companyTier)
+                        .font(.system(size: 10))
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("Valuation").font(.system(size: 9)).foregroundColor(AppColors.textMuted)
+                Text(game.formatCompact(cm.state.companyValuation))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(AppColors.purple)
+            }
+        }
+    }
+    
+    private func companyStatsGrid(cm: CompanyManager) -> some View {
+        let staffingPercent = Int(cm.staffingLevel * 100)
+        let staffColor = cm.isUnderstaffed ? AppColors.warning : AppColors.mattGreen
+        let staffIcon = staffingPercent >= 100 ? "✅" : "⚠️"
+        
+        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            companyStatCell(icon: "👥", label: "STAFF", value: "\(cm.state.totalEmployees)/\(cm.requiredEmployees)", color: staffColor)
+            companyStatCell(icon: staffIcon, label: "STAFFING", value: "\(min(staffingPercent, 150))%", color: staffColor)
+            companyStatCell(icon: "💰", label: "PAYROLL/YR", value: game.formatCompact(cm.annualPayroll), color: AppColors.textSecondary)
+        }
+    }
+    
+    private func companyDepartmentRow(cm: CompanyManager) -> some View {
+        HStack(spacing: 6) {
+            ForEach(Department.allCases, id: \.self) { dept in
+                let count = cm.getDepartmentCount(dept)
+                HStack(spacing: 2) {
+                    Text(dept.icon).font(.system(size: 10))
+                    Text("\(count)")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(count > 0 ? .white : AppColors.textMuted)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(count > 0 ? AppColors.surfaceLight : Color.clear))
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func companyWarningsAndLocations(cm: CompanyManager) -> some View {
+        if cm.isUnderstaffed {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(AppColors.warning)
+                Text(cm.staffingStatus.message).font(.system(size: 10)).foregroundColor(AppColors.warning)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity)
+            .background(AppColors.warning.opacity(0.15))
+            .cornerRadius(8)
+        }
+        
+        if !cm.state.locations.isEmpty {
+            VStack(spacing: 6) {
+                HStack {
+                    Text("📍")
+                    Text("LOCATIONS").font(.system(size: 9, weight: .bold)).foregroundColor(AppColors.textMuted)
+                    Spacer()
+                    Text("\(cm.state.locations.count)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                }
+                ForEach(cm.state.locations) { location in
+                    HStack(spacing: 6) {
+                        Text(location.icon).font(.system(size: 10))
+                        Text(location.name).font(.system(size: 9)).foregroundColor(.white)
+                        Text("• \(location.city)").font(.system(size: 9)).foregroundColor(AppColors.textMuted)
+                        Spacer()
+                    }
+                }
+            }
+            .padding(10)
+            .background(AppColors.surfaceLight)
+            .cornerRadius(8)
+        }
+    }
+    
+    private var companyActionButtons: some View {
+        HStack(spacing: 10) {
+            Button(action: { showExpandSheet = true }) {
+                HStack(spacing: 4) {
+                    Text("🏗️").font(.system(size: 12))
+                    Text("EXPAND").font(.system(size: 10, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(AppColors.mattBlue)
+                .cornerRadius(8)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            Button(action: { showSellCompanyAlert = true }) {
+                HStack(spacing: 4) {
+                    Text("💰").font(.system(size: 12))
+                    Text("SELL").font(.system(size: 10, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(AppColors.warning.opacity(0.8))
+                .cornerRadius(8)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+    }
     
     private func companyStatCell(icon: String, label: String, value: String, color: Color) -> some View {
         VStack(spacing: 2) {
@@ -1803,7 +1768,8 @@ struct ZonedGameView: View {
                 Text("❤️ \(partner.relationshipLevel)")
                     .font(.caption.bold())
                     .foregroundColor(.red)
-                if let income = partner.incomeContribution, income > 0 {
+                let income = partner.incomeContribution
+                if income > 0 {
                     Text("+\(game.formatCompact(income))/yr")
                         .font(.caption2)
                         .foregroundColor(AppColors.mattGreen)
@@ -4365,9 +4331,10 @@ struct SellVentureSheet: View {
                 Button("Cancel", role: .cancel) { }
                 Button("Sell", role: .destructive) {
                     if let venture = selectedVenture {
-                        let salePrice = ventureManager.sellVenture(venture)
-                        game.cash += salePrice
-                        game.totalEarned += salePrice
+                        if let salePrice = ventureManager.sellVenture(id: venture.id) {
+                            game.cash += salePrice
+                            game.totalEarned += salePrice
+                        }
                         dismiss()
                     }
                 }
