@@ -234,6 +234,10 @@ class GameState: ObservableObject {
         // Apply company understaffing penalty - understaffed companies make less money!
         income *= CompanyManager.shared.understaffingPenalty
         
+        // Add venture income (from serial entrepreneur companies)
+        let ventureIncome = VentureManager.shared.getTotalVentureIncome() / LifeCycleConstants.secondsPerGameYear
+        income += ventureIncome
+        
         return income
     }
     
@@ -955,6 +959,25 @@ class GameState: ObservableObject {
         synergyManager.checkSynergies(game: self)
         
         // ═══════════════════════════════════════════════════════════
+        // VENTURE SYSTEM - Serial Entrepreneur companies
+        // ═══════════════════════════════════════════════════════════
+        
+        let ventureManager = VentureManager.shared
+        if ventureManager.state.ventures.count > 0 {
+            ventureManager.processYear()
+            
+            let ventureProfit = ventureManager.state.totalVentureProfit
+            if ventureProfit > 0 {
+                cash += ventureProfit
+                totalEarned += ventureProfit
+                NewsFeedManager.shared.addNews(
+                    category: .personal,
+                    headline: "🏢 Venture profits: +\(formatCompact(ventureProfit)) from \(ventureManager.state.activeVentures.count) companies"
+                )
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════
         
         // Apply wealth dimension yearly decay
         wealthManager.processYearEnd()
@@ -1210,7 +1233,26 @@ class GameState: ObservableObject {
         currentRoleIndex += 1
         statusPoints += next.statusPoints
         
+        // Check if max career reached - unlock ventures!
+        if let career = selectedCareer {
+            VentureManager.shared.checkVentureUnlock(
+                careerRoleIndex: currentRoleIndex,
+                careerRolesCount: career.roles.count
+            )
+        }
+        
         return true
+    }
+    
+    /// Check if player has reached max career level
+    var isMaxCareer: Bool {
+        guard let career = selectedCareer else { return false }
+        return currentRoleIndex >= career.roles.count - 1
+    }
+    
+    /// Check if ventures are unlocked
+    var hasUnlockedVentures: Bool {
+        VentureManager.shared.state.hasUnlockedVentures
     }
     
     func invest(in investmentId: String, amount: Double) -> Bool {
@@ -1808,6 +1850,7 @@ class GameState: ObservableObject {
         StrategicEventManager.shared.reset()
         CompetitorManager.shared.reset()
         SynergyManager.shared.reset()
+        VentureManager.shared.reset()
         
         // Reset THIS GameState instance to fresh values
         cash = 0
@@ -1914,6 +1957,7 @@ class GameState: ObservableObject {
         StrategicEventManager.shared.reset()
         CompetitorManager.shared.reset()
         SynergyManager.shared.reset()
+        VentureManager.shared.reset()
         
         // Restore preserved unlocks
         prestigeManager.restoreUnlocks(

@@ -107,8 +107,9 @@ struct DepartmentState: Codable {
     }
 }
 
-// MARK: - Industry Types
+// MARK: - Industry Types (Expanded with cool company ideas)
 enum Industry: String, Codable, CaseIterable, Identifiable {
+    // Original industries
     case software = "Software"
     case space = "Space"
     case robotics = "Robotics"
@@ -119,6 +120,20 @@ enum Industry: String, Codable, CaseIterable, Identifiable {
     case ai = "Artificial Intelligence"
     case biotech = "Biotechnology"
     case fintech = "Fintech"
+    
+    // NEW: Cool venture industries (unlocked after max career)
+    case ecommerce = "E-Commerce"           // Amazon competitor
+    case socialMedia = "Social Media"        // Meta competitor
+    case streaming = "Streaming"             // Netflix competitor
+    case gaming = "Gaming"                   // Epic/Valve competitor
+    case crypto = "Crypto & Web3"            // Coinbase competitor
+    case defenseTech = "Defense Tech"        // Anduril competitor
+    case healthcare = "Healthcare"           // Oscar/One Medical competitor
+    case foodTech = "Food Tech"              // DoorDash competitor
+    case realEstateTech = "Real Estate Tech" // Zillow competitor
+    case logistics = "Logistics"             // FedEx competitor
+    case media = "Media Empire"              // Disney competitor
+    case fashion = "Fashion Tech"            // LVMH competitor
     
     var id: String { rawValue }
     
@@ -134,6 +149,19 @@ enum Industry: String, Codable, CaseIterable, Identifiable {
         case .ai: return "🧠"
         case .biotech: return "🧬"
         case .fintech: return "💰"
+        // New industries
+        case .ecommerce: return "📦"
+        case .socialMedia: return "👥"
+        case .streaming: return "🎬"
+        case .gaming: return "🎮"
+        case .crypto: return "₿"
+        case .defenseTech: return "🛡️"
+        case .healthcare: return "🏥"
+        case .foodTech: return "🍔"
+        case .realEstateTech: return "🏠"
+        case .logistics: return "🚚"
+        case .media: return "🎭"
+        case .fashion: return "👗"
         }
     }
     
@@ -149,6 +177,19 @@ enum Industry: String, Codable, CaseIterable, Identifiable {
         case .ai: return 50_000_000
         case .nuclear: return 100_000_000
         case .space: return 200_000_000
+        // New industries - require max career (these unlock via ventures)
+        case .ecommerce: return 1_000_000
+        case .socialMedia: return 2_000_000
+        case .streaming: return 5_000_000
+        case .gaming: return 3_000_000
+        case .crypto: return 2_000_000
+        case .defenseTech: return 50_000_000
+        case .healthcare: return 10_000_000
+        case .foodTech: return 1_000_000
+        case .realEstateTech: return 5_000_000
+        case .logistics: return 10_000_000
+        case .media: return 100_000_000
+        case .fashion: return 20_000_000
         }
     }
     
@@ -164,7 +205,284 @@ enum Industry: String, Codable, CaseIterable, Identifiable {
         case .ai: return "Machine learning and AI systems"
         case .biotech: return "Genetic engineering and medical breakthroughs"
         case .fintech: return "Digital banking and financial technology"
+        // New venture industries
+        case .ecommerce: return "Build the next Amazon - marketplace & fulfillment"
+        case .socialMedia: return "Create a social network to rival Meta"
+        case .streaming: return "Launch a streaming service like Netflix"
+        case .gaming: return "Build a gaming empire like Epic or Valve"
+        case .crypto: return "Web3, blockchain, and digital assets"
+        case .defenseTech: return "Military tech and national security"
+        case .healthcare: return "Disrupt healthcare with technology"
+        case .foodTech: return "Food delivery and restaurant tech"
+        case .realEstateTech: return "PropTech and real estate innovation"
+        case .logistics: return "Shipping, fulfillment, and supply chain"
+        case .media: return "Entertainment conglomerate like Disney"
+        case .fashion: return "Luxury fashion and retail empire"
         }
+    }
+    
+    /// Famous company comparison for this industry
+    var famousExample: String {
+        switch self {
+        case .software: return "Build the next Salesforce"
+        case .space: return "Compete with SpaceX"
+        case .robotics: return "Challenge Boston Dynamics"
+        case .automotive: return "Rival Tesla"
+        case .dataCenters: return "Compete with AWS"
+        case .solar: return "Scale like First Solar"
+        case .nuclear: return "Next-gen like Oklo"
+        case .ai: return "Challenge OpenAI"
+        case .biotech: return "Disrupt like Moderna"
+        case .fintech: return "Scale like Stripe"
+        case .ecommerce: return "Build the next Amazon"
+        case .socialMedia: return "Create the next Meta"
+        case .streaming: return "Launch the next Netflix"
+        case .gaming: return "Build the next Epic Games"
+        case .crypto: return "Scale like Coinbase"
+        case .defenseTech: return "Grow like Anduril"
+        case .healthcare: return "Disrupt like One Medical"
+        case .foodTech: return "Scale like DoorDash"
+        case .realEstateTech: return "Build the next Zillow"
+        case .logistics: return "Rival FedEx or Amazon Logistics"
+        case .media: return "Build the next Disney"
+        case .fashion: return "Create the next LVMH"
+        }
+    }
+    
+    /// Whether this industry requires max career to unlock (venture industries)
+    var isVentureIndustry: Bool {
+        switch self {
+        case .ecommerce, .socialMedia, .streaming, .gaming, .crypto, 
+             .defenseTech, .healthcare, .foodTech, .realEstateTech, 
+             .logistics, .media, .fashion:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
+// MARK: - Venture System (Serial Entrepreneur)
+// Once you max out your career, you can start new companies in different industries!
+
+struct Venture: Identifiable, Codable {
+    let id: String
+    var name: String
+    var industry: Industry
+    var foundedYear: Int
+    var valuation: Double
+    var employees: Int
+    var revenue: Double
+    var growthRate: Double  // Annual growth rate
+    var isActive: Bool
+    
+    /// Calculate yearly revenue based on valuation and industry
+    var yearlyRevenue: Double {
+        valuation * 0.15  // ~15% of valuation as revenue
+    }
+    
+    /// Calculate how much profit this venture generates
+    var yearlyProfit: Double {
+        yearlyRevenue * 0.2  // 20% profit margin
+    }
+    
+    /// Get the venture stage based on valuation
+    var stage: VentureStage {
+        switch valuation {
+        case 0..<1_000_000: return .startup
+        case 1_000_000..<10_000_000: return .growth
+        case 10_000_000..<100_000_000: return .scaleup
+        case 100_000_000..<1_000_000_000: return .unicorn
+        case 1_000_000_000..<10_000_000_000: return .decacorn
+        default: return .empire
+        }
+    }
+}
+
+enum VentureStage: String, Codable {
+    case startup = "Startup"
+    case growth = "Growth Stage"
+    case scaleup = "Scale-Up"
+    case unicorn = "Unicorn 🦄"
+    case decacorn = "Decacorn"
+    case empire = "Global Empire"
+    
+    var icon: String {
+        switch self {
+        case .startup: return "🌱"
+        case .growth: return "📈"
+        case .scaleup: return "🚀"
+        case .unicorn: return "🦄"
+        case .decacorn: return "💎"
+        case .empire: return "👑"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .startup: return "Early stage, building product"
+        case .growth: return "Product-market fit achieved"
+        case .scaleup: return "Rapid expansion phase"
+        case .unicorn: return "$1B+ valuation"
+        case .decacorn: return "$10B+ valuation"
+        case .empire: return "Global domination"
+        }
+    }
+}
+
+struct VentureState: Codable {
+    var ventures: [Venture] = []
+    var totalVenturesStarted: Int = 0
+    var hasUnlockedVentures: Bool = false
+    
+    var totalVentureValuation: Double {
+        ventures.reduce(0) { $0 + $1.valuation }
+    }
+    
+    var totalVentureProfit: Double {
+        ventures.filter { $0.isActive }.reduce(0) { $0 + $1.yearlyProfit }
+    }
+    
+    var activeVentures: [Venture] {
+        ventures.filter { $0.isActive }
+    }
+}
+
+class VentureManager: ObservableObject {
+    static let shared = VentureManager()
+    
+    @Published var state: VentureState
+    @Published var showVentureUnlockedAlert = false
+    @Published var showNewVentureSheet = false
+    
+    private init() {
+        if let data = UserDefaults.standard.data(forKey: "ventureState"),
+           let decoded = try? JSONDecoder().decode(VentureState.self, from: data) {
+            self.state = decoded
+        } else {
+            self.state = VentureState()
+        }
+    }
+    
+    func save() {
+        if let encoded = try? JSONEncoder().encode(state) {
+            UserDefaults.standard.set(encoded, forKey: "ventureState")
+        }
+    }
+    
+    /// Check if player has reached max career (unlocks ventures)
+    func checkVentureUnlock(careerRoleIndex: Int, careerRolesCount: Int) {
+        // Max career = last role (index == count - 1)
+        if careerRoleIndex >= careerRolesCount - 1 && !state.hasUnlockedVentures {
+            state.hasUnlockedVentures = true
+            showVentureUnlockedAlert = true
+            save()
+            
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "🎉 CAREER MAXED! You've unlocked Serial Entrepreneur mode - start new ventures!"
+            )
+        }
+    }
+    
+    /// Get available industries for new ventures
+    func availableIndustries() -> [Industry] {
+        let startedIndustries = Set(state.ventures.map { $0.industry })
+        return Industry.allCases.filter { industry in
+            industry.isVentureIndustry && !startedIndustries.contains(industry)
+        }
+    }
+    
+    /// Start a new venture in an industry
+    func startVenture(name: String, industry: Industry, initialInvestment: Double, currentYear: Int) -> Venture? {
+        guard state.hasUnlockedVentures else { return nil }
+        guard initialInvestment >= industry.entryThreshold else { return nil }
+        
+        let venture = Venture(
+            id: UUID().uuidString,
+            name: name,
+            industry: industry,
+            foundedYear: currentYear,
+            valuation: initialInvestment * 2,  // 2x initial investment as starting valuation
+            employees: 5,  // Start with small team
+            revenue: 0,
+            growthRate: 0.25,  // 25% annual growth to start
+            isActive: true
+        )
+        
+        state.ventures.append(venture)
+        state.totalVenturesStarted += 1
+        save()
+        
+        NewsFeedManager.shared.addNews(
+            category: .personal,
+            headline: "\(industry.icon) New venture launched! \(name) enters the \(industry.rawValue) industry!"
+        )
+        
+        return venture
+    }
+    
+    /// Process yearly growth for all ventures
+    func processYear() {
+        for i in 0..<state.ventures.count where state.ventures[i].isActive {
+            var venture = state.ventures[i]
+            
+            // Apply growth rate to valuation
+            let growth = venture.valuation * venture.growthRate
+            venture.valuation += growth
+            
+            // Employees grow with valuation
+            let newEmployees = Int(growth / 100_000)  // 1 employee per $100k growth
+            venture.employees += max(0, newEmployees)
+            
+            // Revenue based on valuation
+            venture.revenue = venture.yearlyRevenue
+            
+            // Growth rate decreases as company gets bigger
+            if venture.valuation > 1_000_000_000 {
+                venture.growthRate = max(0.05, venture.growthRate * 0.9)  // Slow down at $1B+
+            }
+            
+            state.ventures[i] = venture
+        }
+        save()
+    }
+    
+    /// Get total passive income from all ventures
+    func getTotalVentureIncome() -> Double {
+        state.totalVentureProfit
+    }
+    
+    /// Invest more money in an existing venture
+    func investInVenture(id: String, amount: Double) -> Bool {
+        guard let index = state.ventures.firstIndex(where: { $0.id == id }) else { return false }
+        
+        state.ventures[index].valuation += amount * 1.5  // Investment increases valuation 1.5x
+        save()
+        return true
+    }
+    
+    /// Sell a venture (exit)
+    func sellVenture(id: String) -> Double? {
+        guard let index = state.ventures.firstIndex(where: { $0.id == id }) else { return nil }
+        
+        let venture = state.ventures[index]
+        let salePrice = venture.valuation * 0.8  // Sell at 80% of valuation
+        
+        state.ventures[index].isActive = false
+        save()
+        
+        NewsFeedManager.shared.addNews(
+            category: .personal,
+            headline: "💰 EXIT! Sold \(venture.name) for \(GameState.formatCompact(salePrice))!"
+        )
+        
+        return salePrice
+    }
+    
+    func reset() {
+        state = VentureState()
+        save()
     }
 }
 
