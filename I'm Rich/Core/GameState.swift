@@ -798,16 +798,18 @@ class GameState: ObservableObject {
             if cash >= yearlyExpenses {
                 cash -= yearlyExpenses
                 CreditManager.shared.modifyScore(by: 5, reason: "Expenses paid on time")
-            } else {
-                // Can't afford expenses - credit damage!
-                let shortfall = yearlyExpenses - cash
-                cash = 0
-                CreditManager.shared.modifyScore(by: -50, reason: "Missed expense payments")
+            } else if cash > 0 {
+                // Partial payment - pay what we can (up to 50% of cash for expenses)
+                let partialPayment = min(cash * 0.5, yearlyExpenses)
+                let shortfall = yearlyExpenses - partialPayment
+                cash -= partialPayment
+                CreditManager.shared.modifyScore(by: -20, reason: "Partial expense payment")
                 NewsFeedManager.shared.addNews(
                     category: .personal,
-                    headline: "Warning: Couldn't cover expenses! Shortfall: \(formatCompact(shortfall))"
+                    headline: "⚠️ Couldn't cover all expenses. Paid \(formatCompact(partialPayment)), shortfall: \(formatCompact(shortfall))"
                 )
             }
+            // If cash is 0, no deduction (nothing to take)
         }
         
         // Process partnership yearly costs
@@ -822,14 +824,22 @@ class GameState: ObservableObject {
             TaxManager.shared.recordInvestmentIncome(totalCompoundedGains)
         }
         
-        // Process taxes
+        // Process taxes (safely - don't go negative)
         let (taxBill, taxPaid) = TaxManager.shared.processYearEnd(game: self)
         if taxBill > 0 {
-            if taxPaid {
+            if taxPaid && cash >= taxBill {
                 cash -= taxBill
                 NewsFeedManager.shared.addNews(
                     category: .markets,
                     headline: "💰 Taxes paid: \(formatCompact(taxBill)) (Effective rate: \(Int(TaxManager.shared.effectiveTaxRate(for: taxBill) * 100))%)"
+                )
+            } else if taxPaid && cash > 0 {
+                // Partial tax payment
+                let partialPayment = min(cash * 0.4, taxBill)
+                cash -= partialPayment
+                NewsFeedManager.shared.addNews(
+                    category: .markets,
+                    headline: "⚠️ Partial taxes: Paid \(formatCompact(partialPayment)) of \(formatCompact(taxBill))"
                 )
             } else {
                 NewsFeedManager.shared.addNews(
@@ -858,26 +868,32 @@ class GameState: ObservableObject {
         let companyManager = CompanyManager.shared
         
         // Process payroll (employees cost money!)
+        // Only charge payroll if company is founded with employees
         let payroll = companyManager.annualPayroll
-        if payroll > 0 {
+        if payroll > 0 && companyManager.state.totalEmployees > 0 {
+            // Be reasonable - only charge what they can afford, don't wipe out cash
+            let affordablePayroll = min(payroll, cash * 0.5) // Max 50% of cash for payroll
+            
             if cash >= payroll {
+                // Can afford full payroll - great!
                 cash -= payroll
                 NewsFeedManager.shared.addNews(
                     category: .personal,
                     headline: "💼 Payroll paid: \(formatCompact(payroll)) for \(companyManager.state.totalEmployees) employees"
                 )
-            } else {
-                // Can't pay employees - they quit and company suffers!
-                let shortfall = payroll - cash
-                cash = 0
-                
-                // Fire employees you can't pay
-                let firedCount = max(1, companyManager.state.totalEmployees / 4)
+            } else if cash > 0 {
+                // Partial payment - pay what we can, some consequences
+                let partialPayment = min(cash * 0.5, payroll) // Pay up to 50% of cash
+                cash -= partialPayment
+                let shortfall = payroll - partialPayment
                 NewsFeedManager.shared.addNews(
                     category: .personal,
-                    headline: "🚨 Payroll crisis! Can't pay employees. \(firedCount) staff quit. Shortfall: \(formatCompact(shortfall))"
+                    headline: "⚠️ Payroll partial: Paid \(formatCompact(partialPayment)) of \(formatCompact(payroll)). Shortfall: \(formatCompact(shortfall))"
                 )
+                // Some employees unhappy but don't quit en masse
+                CreditManager.shared.modifyScore(by: -10, reason: "Partial payroll payment")
             }
+            // Note: If cash is 0, no payroll deduction (nothing to take)
         }
         
         // Check staffing levels
@@ -946,13 +962,22 @@ class GameState: ObservableObject {
         // Process family yearly events
         familyManager.processYear(currentYear: lifecycleManager.gameYearsPassed + lifecycleManager.startingAge)
         
-        // Deduct child expenses
-        if familyManager.state.totalChildExpenses > 0 {
-            cash -= familyManager.state.totalChildExpenses
-            NewsFeedManager.shared.addNews(
-                category: .personal,
-                headline: "Yearly family expenses: \(formatCompact(familyManager.state.totalChildExpenses))"
-            )
+        // Deduct child expenses (safely - don't go negative)
+        let childExpenses = familyManager.state.totalChildExpenses
+        if childExpenses > 0 && cash > 0 {
+            let payment = min(childExpenses, cash * 0.3) // Max 30% of cash for family expenses
+            cash -= payment
+            if payment < childExpenses {
+                NewsFeedManager.shared.addNews(
+                    category: .personal,
+                    headline: "⚠️ Family expenses: Paid \(formatCompact(payment)) of \(formatCompact(childExpenses))"
+                )
+            } else {
+                NewsFeedManager.shared.addNews(
+                    category: .personal,
+                    headline: "👨‍👩‍👧‍👦 Yearly family expenses: \(formatCompact(payment))"
+                )
+            }
         }
         
         // Partner income contribution
@@ -967,6 +992,12 @@ class GameState: ObservableObject {
         // Check for forced retirement
         if event.mustRetire {
             lifecycleManager.showRetirementPrompt = true
+        }
+        
+        // SAFETY: Ensure cash never goes negative after year-end processing
+        if cash < 0 {
+            print("⚠️ Cash went negative (\(cash)) during year-end - resetting to 0")
+            cash = 0
         }
     }
     
