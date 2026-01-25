@@ -1685,7 +1685,7 @@ struct ZonedGameView: View {
         if game.cash >= 50000 {
             game.cash -= 50000
             if let child = familyManager.haveChild(currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge) {
-                NewsFeedManager.shared.addNews("👶", "NEW BABY!", "Welcome \(child.name) to the family!")
+                NewsFeedManager.shared.addNews(category: .personal, headline: "👶 NEW BABY! Welcome \(child.name) to the family!")
             }
         }
     }
@@ -1694,7 +1694,7 @@ struct ZonedGameView: View {
         if let partner = familyManager.state.currentlyDating, game.cash >= 25000 {
             game.cash -= 25000
             if familyManager.propose(to: partner, weddingBudget: 25000, currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge) {
-                NewsFeedManager.shared.addNews("💍", "ENGAGED!", "You're getting married to \(partner.name)!")
+                NewsFeedManager.shared.addNews(category: .personal, headline: "💍 ENGAGED! You're getting married to \(partner.name)!")
                 let _ = familyManager.applyTiffanyTax(game: game)
             }
         }
@@ -4825,7 +4825,7 @@ struct ExpandCompanySheet: View {
             cost: locType.cost,
             maxEmployees: locType.employeesRequired * 2
         )
-        NewsFeedManager.shared.addNews("🏗️", "NEW LOCATION", "Opened \(locType.name) in \(selectedCity)!")
+        NewsFeedManager.shared.addNews(category: .business, headline: "🏗️ NEW LOCATION - Opened \(locType.name) in \(selectedCity)!")
         dismiss()
     }
 }
@@ -5460,7 +5460,7 @@ struct TaxPlanTierRow: View {
     
     private func handleUpgrade() {
         if taxManager.upgradePlan(cash: &game.cash) {
-            NewsFeedManager.shared.addNews("🏛️", "TAX PLAN UPGRADED", "Now saving \(Int(tier.taxReduction * 100))% on taxes with \(tier.name) plan!")
+            NewsFeedManager.shared.addNews(category: .business, headline: "🏛️ TAX PLAN UPGRADED - Now saving \(Int(tier.taxReduction * 100))% on taxes with \(tier.name) plan!")
         }
     }
 }
