@@ -377,6 +377,17 @@ class VentureManager: ObservableObject {
         }
     }
     
+    /// Format currency compactly
+    private func formatCompact(_ value: Double) -> String {
+        switch value {
+        case 1_000_000_000_000...: return String(format: "$%.1fT", value / 1_000_000_000_000)
+        case 1_000_000_000...: return String(format: "$%.1fB", value / 1_000_000_000)
+        case 1_000_000...: return String(format: "$%.1fM", value / 1_000_000)
+        case 1_000...: return String(format: "$%.1fK", value / 1_000)
+        default: return "$\(Int(value))"
+        }
+    }
+    
     /// Check if player has reached max career (unlocks ventures)
     func checkVentureUnlock(careerRoleIndex: Int, careerRolesCount: Int) {
         // Max career = last role (index == count - 1)
@@ -481,7 +492,7 @@ class VentureManager: ObservableObject {
         
         NewsFeedManager.shared.addNews(
             category: .personal,
-            headline: "💰 EXIT! Sold \(venture.name) for \(GameState.formatCompact(salePrice))!"
+            headline: "💰 EXIT! Sold \(venture.name) for \(formatCompact(salePrice))!"
         )
         
         return salePrice
