@@ -1272,17 +1272,17 @@ struct AutoTapper: Identifiable, Codable {
         baseTapsPerSecond * Double(2 + level)
     }
     
-    /// BALANCED: Flat income per tap instead of using tap value multipliers
-    /// This prevents auto-tappers from generating billions/second at late game
+    /// IMPROVED: Income per tap scales with tapper tier
+    /// Designed so all tappers combined can generate significant passive income
     var baseIncomePerTap: Double {
         switch id {
-        case "buddy": return 1.0           // $1 per tap
-        case "intern": return 5.0          // $5 per tap
-        case "va": return 25.0             // $25 per tap
-        case "ai_bot": return 100.0        // $100 per tap
-        case "tap_army": return 500.0      // $500 per tap
-        case "tap_factory": return 2_500.0 // $2,500 per tap
-        case "quantum_tapper": return 10_000.0 // $10,000 per tap
+        case "buddy": return 5.0             // $5 per tap → $1.65/sec
+        case "intern": return 25.0           // $25 per tap → $25/sec
+        case "va": return 100.0              // $100 per tap → $500/sec
+        case "ai_bot": return 500.0          // $500 per tap → $12.5K/sec
+        case "tap_army": return 1_000.0      // $1K per tap → $100K/sec
+        case "tap_factory": return 2_500.0   // $2.5K per tap → $1.25M/sec
+        case "quantum_tapper": return 5_000.0 // $5K per tap → $50M/sec
         default: return 1.0
         }
     }
@@ -1293,7 +1293,7 @@ let allAutoTappers: [AutoTapper] = [
         id: "buddy",
         name: "Recruit a Buddy",
         icon: "🤝",
-        description: "Your friend helps out - taps every 3 sec",
+        description: "Your friend helps out - $1.65/sec",
         baseTapsPerSecond: 0.33,
         baseCost: 100,
         phaseUnlock: .hustle
@@ -1302,7 +1302,7 @@ let allAutoTappers: [AutoTapper] = [
         id: "intern",
         name: "Hire an Intern",
         icon: "👨‍💼",
-        description: "Eager college student taps for you",
+        description: "Eager college student - $25/sec",
         baseTapsPerSecond: 1,
         baseCost: 1000,
         phaseUnlock: .hustle
@@ -1311,7 +1311,7 @@ let allAutoTappers: [AutoTapper] = [
         id: "va",
         name: "Virtual Assistant",
         icon: "💻",
-        description: "Remote worker handles your tapping",
+        description: "Remote worker - $500/sec",
         baseTapsPerSecond: 5,
         baseCost: 10000,
         phaseUnlock: .hustle
@@ -1320,7 +1320,7 @@ let allAutoTappers: [AutoTapper] = [
         id: "ai_bot",
         name: "AI Bot",
         icon: "🤖",
-        description: "Machine learning optimizes your taps",
+        description: "Machine learning - $12.5K/sec",
         baseTapsPerSecond: 25,
         baseCost: 100000,
         phaseUnlock: .careerLeverage
@@ -1329,7 +1329,7 @@ let allAutoTappers: [AutoTapper] = [
         id: "tap_army",
         name: "Tap Army",
         icon: "👥",
-        description: "An entire team dedicated to tapping",
+        description: "Entire team - $100K/sec",
         baseTapsPerSecond: 100,
         baseCost: 1000000,
         phaseUnlock: .portfolioEngine
@@ -1338,7 +1338,7 @@ let allAutoTappers: [AutoTapper] = [
         id: "tap_factory",
         name: "Tap Factory",
         icon: "🏭",
-        description: "Industrial-scale automated tapping",
+        description: "Industrial scale - $1.25M/sec",
         baseTapsPerSecond: 500,
         baseCost: 10000000,
         phaseUnlock: .portfolioEngine
@@ -1347,8 +1347,8 @@ let allAutoTappers: [AutoTapper] = [
         id: "quantum_tapper",
         name: "Quantum Tapper",
         icon: "⚛️",
-        description: "Taps in multiple dimensions simultaneously",
-        baseTapsPerSecond: 2500,
+        description: "Multi-dimensional - 10K taps × $5K = $50M/sec",
+        baseTapsPerSecond: 10000,
         baseCost: 100000000,
         phaseUnlock: .legacyScale
     )
