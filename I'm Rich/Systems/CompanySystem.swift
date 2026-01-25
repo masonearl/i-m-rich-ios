@@ -8,6 +8,84 @@
 import SwiftUI
 import Combine
 
+// MARK: - Department Types
+enum Department: String, Codable, CaseIterable, Identifiable {
+    case engineering = "Engineering"
+    case sales = "Sales"
+    case marketing = "Marketing"
+    case hr = "HR"
+    case finance = "Finance"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .engineering: return "👨‍💻"
+        case .sales: return "📈"
+        case .marketing: return "📣"
+        case .hr: return "👥"
+        case .finance: return "💰"
+        }
+    }
+    
+    var baseSalary: Double {
+        switch self {
+        case .engineering: return 120_000
+        case .sales: return 80_000
+        case .marketing: return 75_000
+        case .hr: return 70_000
+        case .finance: return 100_000
+        }
+    }
+    
+    var hireCost: Double {
+        baseSalary * 2  // 2x salary to hire
+    }
+    
+    var description: String {
+        switch self {
+        case .engineering: return "Product success rate +10% per engineer"
+        case .sales: return "Revenue multiplier +5% per salesperson"
+        case .marketing: return "Contact bonuses +10%, daily sales +20"
+        case .hr: return "Prevents 15%/year valuation decay"
+        case .finance: return "Investment returns +2% per analyst"
+        }
+    }
+    
+    /// Maximum employees per department, scales with company size tier
+    func maxEmployees(companyTier: Int) -> Int {
+        // Tier 0 = Solo, 1 = Startup, 2 = Small, etc.
+        let base: Int
+        switch self {
+        case .engineering: base = 10
+        case .sales: base = 8
+        case .marketing: base = 5
+        case .hr: base = 3
+        case .finance: base = 5
+        }
+        return base * max(1, companyTier)
+    }
+}
+
+// MARK: - Department State
+struct DepartmentState: Codable {
+    var employees: [String: Int] = [:]  // Department rawValue -> count
+    var lastHRCheck: Int = 0  // Game year of last HR check
+    
+    func getCount(for department: Department) -> Int {
+        employees[department.rawValue] ?? 0
+    }
+    
+    mutating func addEmployee(to department: Department, count: Int = 1) {
+        let current = employees[department.rawValue] ?? 0
+        employees[department.rawValue] = current + count
+    }
+    
+    var totalDepartmentEmployees: Int {
+        employees.values.reduce(0, +)
+    }
+}
+
 // MARK: - Industry Types
 enum Industry: String, Codable, CaseIterable, Identifiable {
     case software = "Software"
@@ -139,11 +217,16 @@ struct CompanyState: Codable {
     var tradeDealsCompleted: Int = 0
     var acquisitions: Int = 0
     
+    // Department System
+    var departmentState: DepartmentState = DepartmentState()
+    
     // Maximum valuation cap to prevent overflow bugs
     static let maxValuation: Double = 5_000_000_000_000 // $5 trillion cap
     
     var totalEmployees: Int {
-        employees.reduce(0) { $0 + $1.count }
+        // Include both legacy employees and department employees
+        let legacyCount = employees.reduce(0) { $0 + $1.count }
+        return legacyCount + departmentState.totalDepartmentEmployees
     }
     
     var totalPayroll: Double {
@@ -245,6 +328,103 @@ class CompanyManager: ObservableObject {
         updateValuation()
     }
     
+    // MARK: - Department Actions
+    
+    /// Get the count of employees in a specific department
+    func getDepartmentCount(_ department: Department) -> Int {
+        state.departmentState.getCount(for: department)
+    }
+    
+    /// Hire an employee to a specific department
+    func hireDepartmentEmployee(_ department: Department) -> Bool {
+        let tier = getCompanyTier()
+        let max = department.maxEmployees(companyTier: tier)
+        let current = getDepartmentCount(department)
+        
+        guard current < max else { return false }
+        
+        state.departmentState.addEmployee(to: department)
+        updateValuation()
+        return true
+    }
+    
+    /// Add employees to a department (e.g., from contact benefits)
+    func addEmployees(department: Department, count: Int) {
+        state.departmentState.addEmployee(to: department, count: count)
+        updateValuation()
+    }
+    
+    /// Get the company tier based on total employees (for department max calculations)
+    func getCompanyTier() -> Int {
+        switch state.totalEmployees {
+        case 0: return 0          // Solo
+        case 1...10: return 1     // Startup
+        case 11...50: return 2    // Small
+        case 51...200: return 3   // Growing
+        case 201...1000: return 4 // Mid-Size
+        case 1001...10000: return 5 // Large
+        default: return 6         // Global
+        }
+    }
+    
+    // MARK: - Department Effect Calculations
+    
+    /// Engineering: +10% product success rate per engineer
+    func getEngineeringBonus() -> Double {
+        let engineers = getDepartmentCount(.engineering)
+        return Double(engineers) * 0.10  // 10% per engineer
+    }
+    
+    /// Sales: +5% revenue multiplier per salesperson
+    func getSalesMultiplier() -> Double {
+        let salespeople = getDepartmentCount(.sales)
+        return 1.0 + (Double(salespeople) * 0.05)  // 5% per salesperson
+    }
+    
+    /// Marketing: +10% contact bonus per marketer, +20 daily sales per marketer
+    func getMarketingContactBonus() -> Double {
+        let marketers = getDepartmentCount(.marketing)
+        return Double(marketers) * 0.10  // 10% per marketer
+    }
+    
+    func getMarketingDailySalesBonus() -> Int {
+        let marketers = getDepartmentCount(.marketing)
+        return marketers * 20  // +20 daily sales per marketer
+    }
+    
+    /// Finance: +2% investment returns per analyst
+    func getFinanceInvestmentBonus() -> Double {
+        let analysts = getDepartmentCount(.finance)
+        return Double(analysts) * 0.02  // 2% per analyst
+    }
+    
+    /// Check if company has HR protection (prevents 15% yearly decay)
+    func hasHRProtection() -> Bool {
+        return getDepartmentCount(.hr) > 0
+    }
+    
+    /// Apply HR decay penalty (15% valuation loss)
+    func applyHRDecay() -> Double {
+        guard state.totalEmployees > 10 && !hasHRProtection() else { return 0 }
+        let decay = state.companyValuation * 0.15
+        state.companyValuation = max(0, state.companyValuation - decay)
+        return decay
+    }
+    
+    /// Get penalty multiplier when missing a department
+    func getMissingDepartmentPenalty(_ department: Department) -> Double {
+        let hasEmployees = getDepartmentCount(department) > 0
+        if hasEmployees { return 1.0 }
+        
+        switch department {
+        case .engineering: return 0.5   // Products fail 50% more
+        case .sales: return 0.5         // Revenue reduced 50%
+        case .marketing: return 0.5     // Contacts give 50% less
+        case .hr: return 1.0            // Handled separately via decay
+        case .finance: return 1.2       // Pay 20% more taxes
+        }
+    }
+    
     private func updateValuation() {
         // Company valuation formula
         let employeeValue = Double(state.totalEmployees) * 100_000
@@ -252,11 +432,14 @@ class CompanyManager: ObservableObject {
         let dealValue = Double(state.tradeDealsCompleted) * 5_000_000
         let acquisitionValue = Double(state.acquisitions) * 50_000_000
         
+        // Department bonus: specialized employees are worth more
+        let deptBonus = Double(state.departmentState.totalDepartmentEmployees) * 50_000
+        
         // Cap capital raised to prevent overflow
         let cappedCapital = min(state.totalCapitalRaised, 10_000_000_000) // $10B cap
         let capitalMultiplier = 1 + (cappedCapital / 100_000_000)
         
-        let rawValuation = (employeeValue + industryValue + dealValue + acquisitionValue) * capitalMultiplier
+        let rawValuation = (employeeValue + industryValue + dealValue + acquisitionValue + deptBonus) * capitalMultiplier
         
         // Apply hard cap to prevent overflow bugs
         state.companyValuation = min(rawValuation, CompanyState.maxValuation)
@@ -293,6 +476,7 @@ class CompanyManager: ObservableObject {
     
     func reset() {
         state = CompanyState()
+        state.departmentState = DepartmentState()
     }
 }
 

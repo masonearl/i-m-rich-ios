@@ -139,12 +139,12 @@ enum GamePhase: Int, Codable, CaseIterable {
     }
     
     var unlockRequirement: Double {
-        // Slower progression for 5-hour gameplay
+        // BALANCED: Much slower progression for 5-10 hour gameplay
         switch self {
         case .hustle: return 0
-        case .careerLeverage: return 25_000           // Was 10K - need more hustling
-        case .portfolioEngine: return 2_500_000       // Was 1M - need more career building
-        case .legacyScale: return 250_000_000         // Was 100M - need more portfolio growth
+        case .careerLeverage: return 100_000          // Was 25K - need real hustling
+        case .portfolioEngine: return 10_000_000      // Was 2.5M - need serious career building
+        case .legacyScale: return 1_000_000_000       // Was 250M - need substantial portfolio
         }
     }
     
@@ -193,50 +193,52 @@ enum CareerPath: String, Codable, CaseIterable {
     }
     
     var roles: [CareerRole] {
+        // REBALANCED: Status requirements increased 3x to make career progression meaningful
+        // Promotion cost = statusPoints × $100, so these scale with difficulty
         switch self {
         case .tech:
             return [
-                CareerRole(title: "Junior Developer", salary: 75_000, statusPoints: 10, meetingUnlock: "Team Lead"),
-                CareerRole(title: "Software Engineer", salary: 120_000, statusPoints: 25, meetingUnlock: "Engineering Manager"),
-                CareerRole(title: "Senior Engineer", salary: 180_000, statusPoints: 50, meetingUnlock: "Director of Engineering"),
-                CareerRole(title: "Staff Engineer", salary: 280_000, statusPoints: 100, meetingUnlock: "VP of Engineering"),
-                CareerRole(title: "Principal Engineer", salary: 400_000, statusPoints: 200, meetingUnlock: "CTO"),
-                CareerRole(title: "VP of Engineering", salary: 600_000, statusPoints: 400, meetingUnlock: "CEO"),
-                CareerRole(title: "CTO", salary: 1_000_000, statusPoints: 800, meetingUnlock: "Tim Cook"),
-                CareerRole(title: "CEO", salary: 5_000_000, statusPoints: 2000, meetingUnlock: "World Leaders")
+                CareerRole(title: "Junior Developer", salary: 45_000, statusPoints: 25, meetingUnlock: "Team Lead"),
+                CareerRole(title: "Software Engineer", salary: 70_000, statusPoints: 75, meetingUnlock: "Engineering Manager"),
+                CareerRole(title: "Senior Engineer", salary: 100_000, statusPoints: 150, meetingUnlock: "Director of Engineering"),
+                CareerRole(title: "Staff Engineer", salary: 170_000, statusPoints: 300, meetingUnlock: "VP of Engineering"),
+                CareerRole(title: "Principal Engineer", salary: 250_000, statusPoints: 600, meetingUnlock: "CTO"),
+                CareerRole(title: "VP of Engineering", salary: 400_000, statusPoints: 1200, meetingUnlock: "CEO"),
+                CareerRole(title: "CTO", salary: 750_000, statusPoints: 2500, meetingUnlock: "Tim Cook"),
+                CareerRole(title: "CEO", salary: 3_000_000, statusPoints: 6000, meetingUnlock: "World Leaders")
             ]
         case .finance:
             return [
-                CareerRole(title: "Analyst", salary: 85_000, statusPoints: 10, meetingUnlock: "Associate"),
-                CareerRole(title: "Associate", salary: 150_000, statusPoints: 30, meetingUnlock: "Vice President"),
-                CareerRole(title: "Vice President", salary: 250_000, statusPoints: 60, meetingUnlock: "Director"),
-                CareerRole(title: "Director", salary: 400_000, statusPoints: 120, meetingUnlock: "Managing Director"),
-                CareerRole(title: "Managing Director", salary: 700_000, statusPoints: 250, meetingUnlock: "Partner"),
-                CareerRole(title: "Partner", salary: 2_000_000, statusPoints: 500, meetingUnlock: "Warren Buffett"),
-                CareerRole(title: "Fund Manager", salary: 10_000_000, statusPoints: 1500, meetingUnlock: "Central Bankers"),
-                CareerRole(title: "Hedge Fund Legend", salary: 50_000_000, statusPoints: 5000, meetingUnlock: "World Leaders")
+                CareerRole(title: "Analyst", salary: 50_000, statusPoints: 30, meetingUnlock: "Associate"),
+                CareerRole(title: "Associate", salary: 90_000, statusPoints: 90, meetingUnlock: "Vice President"),
+                CareerRole(title: "Vice President", salary: 150_000, statusPoints: 180, meetingUnlock: "Director"),
+                CareerRole(title: "Director", salary: 250_000, statusPoints: 360, meetingUnlock: "Managing Director"),
+                CareerRole(title: "Managing Director", salary: 450_000, statusPoints: 750, meetingUnlock: "Partner"),
+                CareerRole(title: "Partner", salary: 1_200_000, statusPoints: 1500, meetingUnlock: "Warren Buffett"),
+                CareerRole(title: "Fund Manager", salary: 5_000_000, statusPoints: 4500, meetingUnlock: "Central Bankers"),
+                CareerRole(title: "Hedge Fund Legend", salary: 25_000_000, statusPoints: 15000, meetingUnlock: "World Leaders")
             ]
         case .creator:
             return [
-                CareerRole(title: "Content Creator", salary: 30_000, statusPoints: 15, meetingUnlock: "Other Creators"),
-                CareerRole(title: "Influencer", salary: 100_000, statusPoints: 40, meetingUnlock: "Brand Managers"),
-                CareerRole(title: "Verified Creator", salary: 250_000, statusPoints: 80, meetingUnlock: "Celebrity Agents"),
-                CareerRole(title: "Brand Ambassador", salary: 500_000, statusPoints: 150, meetingUnlock: "Celebrities"),
-                CareerRole(title: "Media Personality", salary: 1_000_000, statusPoints: 300, meetingUnlock: "A-List Celebrities"),
-                CareerRole(title: "Celebrity", salary: 5_000_000, statusPoints: 700, meetingUnlock: "Elon Musk"),
-                CareerRole(title: "Mega Influencer", salary: 20_000_000, statusPoints: 2000, meetingUnlock: "Global Icons"),
-                CareerRole(title: "Global Icon", salary: 100_000_000, statusPoints: 10000, meetingUnlock: "World Leaders")
+                CareerRole(title: "Content Creator", salary: 18_000, statusPoints: 40, meetingUnlock: "Other Creators"),
+                CareerRole(title: "Influencer", salary: 60_000, statusPoints: 120, meetingUnlock: "Brand Managers"),
+                CareerRole(title: "Verified Creator", salary: 150_000, statusPoints: 250, meetingUnlock: "Celebrity Agents"),
+                CareerRole(title: "Brand Ambassador", salary: 300_000, statusPoints: 500, meetingUnlock: "Celebrities"),
+                CareerRole(title: "Media Personality", salary: 600_000, statusPoints: 1000, meetingUnlock: "A-List Celebrities"),
+                CareerRole(title: "Celebrity", salary: 2_500_000, statusPoints: 2500, meetingUnlock: "Elon Musk"),
+                CareerRole(title: "Mega Influencer", salary: 10_000_000, statusPoints: 7500, meetingUnlock: "Global Icons"),
+                CareerRole(title: "Global Icon", salary: 50_000_000, statusPoints: 30000, meetingUnlock: "World Leaders")
             ]
         case .trades:
             return [
-                CareerRole(title: "Apprentice", salary: 45_000, statusPoints: 5, meetingUnlock: "Journeyman"),
-                CareerRole(title: "Journeyman", salary: 75_000, statusPoints: 15, meetingUnlock: "Foreman"),
-                CareerRole(title: "Foreman", salary: 100_000, statusPoints: 30, meetingUnlock: "Contractor"),
-                CareerRole(title: "Contractor", salary: 150_000, statusPoints: 60, meetingUnlock: "Business Owner"),
-                CareerRole(title: "Business Owner", salary: 300_000, statusPoints: 120, meetingUnlock: "Regional Executives"),
-                CareerRole(title: "Regional Owner", salary: 750_000, statusPoints: 250, meetingUnlock: "Industry Leaders"),
-                CareerRole(title: "Franchise King", salary: 3_000_000, statusPoints: 600, meetingUnlock: "Billionaires"),
-                CareerRole(title: "Industry Titan", salary: 20_000_000, statusPoints: 2000, meetingUnlock: "World Leaders")
+                CareerRole(title: "Apprentice", salary: 28_000, statusPoints: 15, meetingUnlock: "Journeyman"),
+                CareerRole(title: "Journeyman", salary: 45_000, statusPoints: 45, meetingUnlock: "Foreman"),
+                CareerRole(title: "Foreman", salary: 60_000, statusPoints: 90, meetingUnlock: "Contractor"),
+                CareerRole(title: "Contractor", salary: 90_000, statusPoints: 180, meetingUnlock: "Business Owner"),
+                CareerRole(title: "Business Owner", salary: 180_000, statusPoints: 360, meetingUnlock: "Regional Executives"),
+                CareerRole(title: "Regional Owner", salary: 450_000, statusPoints: 750, meetingUnlock: "Industry Leaders"),
+                CareerRole(title: "Franchise King", salary: 1_800_000, statusPoints: 1800, meetingUnlock: "Billionaires"),
+                CareerRole(title: "Industry Titan", salary: 10_000_000, statusPoints: 6000, meetingUnlock: "World Leaders")
             ]
         }
     }
@@ -314,7 +316,7 @@ let allInvestments: [Investment] = [
     Investment(id: "vti", name: "Total Market (VTI)", icon: "🌎", description: "Entire US stock market", minInvestment: 250, riskLevel: .low, baseReturn: 0.07, volatility: 0.16, phaseUnlock: .hustle),
     Investment(id: "vgt", name: "Tech Sector (VGT)", icon: "🖥️", description: "Pure tech exposure", minInvestment: 500, riskLevel: .medium, baseReturn: 0.11, volatility: 0.28, phaseUnlock: .hustle),
     Investment(id: "schd", name: "Dividend (SCHD)", icon: "💰", description: "High dividend stocks", minInvestment: 300, riskLevel: .low, baseReturn: 0.06, volatility: 0.14, phaseUnlock: .hustle),
-    Investment(id: "arkk", name: "ARK Innovation", icon: "🚀", description: "Disruptive innovation", minInvestment: 500, riskLevel: .high, baseReturn: 0.15, volatility: 0.50, phaseUnlock: .hustle),
+    Investment(id: "arkk", name: "ARK Innovation", icon: "🚀", description: "Disruptive innovation", minInvestment: 500, riskLevel: .high, baseReturn: 0.10, volatility: 0.50, phaseUnlock: .hustle),  // BALANCED: was 0.15
     
     // ═══════════════════════════════════════════════════════════════
     // PHASE 2 - CAREER & LEVERAGE (Individual stocks unlocked)
@@ -325,19 +327,19 @@ let allInvestments: [Investment] = [
     Investment(id: "msft", name: "Microsoft (MSFT)", icon: "🪟", description: "Windows, Azure, AI", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.11, volatility: 0.25, phaseUnlock: .careerLeverage),
     Investment(id: "googl", name: "Alphabet (GOOGL)", icon: "🔍", description: "Google, YouTube, Cloud", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.10, volatility: 0.30, phaseUnlock: .careerLeverage),
     Investment(id: "amzn", name: "Amazon (AMZN)", icon: "📦", description: "E-commerce, AWS, AI", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.12, volatility: 0.35, phaseUnlock: .careerLeverage),
-    Investment(id: "nvda", name: "NVIDIA (NVDA)", icon: "🎮", description: "AI chips, GPUs, Data Centers", minInvestment: 1000, riskLevel: .high, baseReturn: 0.20, volatility: 0.55, phaseUnlock: .careerLeverage),
+    Investment(id: "nvda", name: "NVIDIA (NVDA)", icon: "🎮", description: "AI chips, GPUs, Data Centers", minInvestment: 1000, riskLevel: .high, baseReturn: 0.10, volatility: 0.55, phaseUnlock: .careerLeverage),  // BALANCED: was 0.20
     Investment(id: "meta", name: "Meta (META)", icon: "👓", description: "Facebook, Instagram, VR", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.12, volatility: 0.40, phaseUnlock: .careerLeverage),
-    Investment(id: "tsla", name: "Tesla (TSLA)", icon: "🚗", description: "EVs, Energy, Robotics", minInvestment: 1000, riskLevel: .extreme, baseReturn: 0.18, volatility: 0.65, phaseUnlock: .careerLeverage),
+    Investment(id: "tsla", name: "Tesla (TSLA)", icon: "🚗", description: "EVs, Energy, Robotics", minInvestment: 1000, riskLevel: .extreme, baseReturn: 0.10, volatility: 0.65, phaseUnlock: .careerLeverage),  // BALANCED: was 0.18
     
     // Other Major Stocks
     Investment(id: "brk", name: "Berkshire Hathaway", icon: "🏛️", description: "Warren Buffett's empire", minInvestment: 5000, riskLevel: .low, baseReturn: 0.09, volatility: 0.18, phaseUnlock: .careerLeverage),
     Investment(id: "jpm", name: "JPMorgan Chase", icon: "🏦", description: "Largest US bank", minInvestment: 1000, riskLevel: .medium, baseReturn: 0.08, volatility: 0.25, phaseUnlock: .careerLeverage),
     Investment(id: "v", name: "Visa (V)", icon: "💳", description: "Global payments network", minInvestment: 1000, riskLevel: .low, baseReturn: 0.09, volatility: 0.20, phaseUnlock: .careerLeverage),
     
-    // Crypto (HIGH risk, HIGH volatility, moderate expected returns)
-    Investment(id: "btc", name: "Bitcoin (BTC)", icon: "₿", description: "Digital gold, store of value", minInvestment: 500, riskLevel: .extreme, baseReturn: 0.25, volatility: 0.75, phaseUnlock: .careerLeverage),
-    Investment(id: "eth", name: "Ethereum (ETH)", icon: "⟠", description: "Smart contracts, DeFi", minInvestment: 500, riskLevel: .extreme, baseReturn: 0.22, volatility: 0.80, phaseUnlock: .careerLeverage),
-    Investment(id: "sol", name: "Solana (SOL)", icon: "◎", description: "Fast blockchain, NFTs", minInvestment: 250, riskLevel: .extreme, baseReturn: 0.28, volatility: 0.90, phaseUnlock: .careerLeverage),
+    // Crypto (HIGH risk, HIGH volatility, BALANCED returns - was way too high)
+    Investment(id: "btc", name: "Bitcoin (BTC)", icon: "₿", description: "Digital gold, store of value", minInvestment: 500, riskLevel: .extreme, baseReturn: 0.08, volatility: 0.75, phaseUnlock: .careerLeverage),  // BALANCED: was 0.25
+    Investment(id: "eth", name: "Ethereum (ETH)", icon: "⟠", description: "Smart contracts, DeFi", minInvestment: 500, riskLevel: .extreme, baseReturn: 0.07, volatility: 0.80, phaseUnlock: .careerLeverage),  // BALANCED: was 0.22
+    Investment(id: "sol", name: "Solana (SOL)", icon: "◎", description: "Fast blockchain, NFTs", minInvestment: 250, riskLevel: .extreme, baseReturn: 0.08, volatility: 0.90, phaseUnlock: .careerLeverage),  // BALANCED: was 0.28
     
     // Real Estate
     Investment(id: "rental", name: "Rental Property", icon: "🏠", description: "Monthly cash flow", minInvestment: 50_000, riskLevel: .medium, baseReturn: 0.08, volatility: 0.12, phaseUnlock: .careerLeverage),
@@ -346,11 +348,11 @@ let allInvestments: [Investment] = [
     // PHASE 3 - PORTFOLIO ENGINE (Larger investments)
     // ═══════════════════════════════════════════════════════════════
     
-    // Private Tech Companies (Pre-IPO) - risky but higher potential
-    Investment(id: "openai", name: "OpenAI (Private)", icon: "🤖", description: "ChatGPT, AGI research", minInvestment: 100_000, riskLevel: .extreme, baseReturn: 0.35, volatility: 0.90, phaseUnlock: .portfolioEngine),
-    Investment(id: "spacex", name: "SpaceX (Private)", icon: "🚀", description: "Rockets, Starlink, Mars", minInvestment: 250_000, riskLevel: .high, baseReturn: 0.20, volatility: 0.50, phaseUnlock: .portfolioEngine),
-    Investment(id: "stripe", name: "Stripe (Private)", icon: "💵", description: "Online payments platform", minInvestment: 100_000, riskLevel: .medium, baseReturn: 0.14, volatility: 0.35, phaseUnlock: .portfolioEngine),
-    Investment(id: "anthropic", name: "Anthropic (Private)", icon: "🧠", description: "Claude AI, AI safety", minInvestment: 100_000, riskLevel: .extreme, baseReturn: 0.30, volatility: 0.85, phaseUnlock: .portfolioEngine),
+    // Private Tech Companies (Pre-IPO) - risky but BALANCED returns (was way too high)
+    Investment(id: "openai", name: "OpenAI (Private)", icon: "🤖", description: "ChatGPT, AGI research", minInvestment: 100_000, riskLevel: .extreme, baseReturn: 0.12, volatility: 0.90, phaseUnlock: .portfolioEngine),  // BALANCED: was 0.35
+    Investment(id: "spacex", name: "SpaceX (Private)", icon: "🚀", description: "Rockets, Starlink, Mars", minInvestment: 250_000, riskLevel: .high, baseReturn: 0.10, volatility: 0.50, phaseUnlock: .portfolioEngine),  // BALANCED: was 0.20
+    Investment(id: "stripe", name: "Stripe (Private)", icon: "💵", description: "Online payments platform", minInvestment: 100_000, riskLevel: .medium, baseReturn: 0.09, volatility: 0.35, phaseUnlock: .portfolioEngine),  // BALANCED: was 0.14
+    Investment(id: "anthropic", name: "Anthropic (Private)", icon: "🧠", description: "Claude AI, AI safety", minInvestment: 100_000, riskLevel: .extreme, baseReturn: 0.12, volatility: 0.85, phaseUnlock: .portfolioEngine),  // BALANCED: was 0.30
     
     // Commercial Real Estate
     Investment(id: "commercial", name: "Commercial Building", icon: "🏢", description: "Office/retail property", minInvestment: 500_000, riskLevel: .medium, baseReturn: 0.09, volatility: 0.18, phaseUnlock: .portfolioEngine),
@@ -367,19 +369,67 @@ let allInvestments: [Investment] = [
     // PHASE 4 - LEGACY & SCALE (Institutional level)
     // ═══════════════════════════════════════════════════════════════
     
-    // Funds
-    Investment(id: "hedge_fund", name: "Hedge Fund", icon: "🎯", description: "Sophisticated strategies", minInvestment: 1_000_000, riskLevel: .high, baseReturn: 0.12, volatility: 0.35, phaseUnlock: .legacyScale),
-    Investment(id: "pe_fund", name: "Private Equity Fund", icon: "🦈", description: "Buy and optimize companies", minInvestment: 5_000_000, riskLevel: .high, baseReturn: 0.15, volatility: 0.30, phaseUnlock: .legacyScale),
-    Investment(id: "vc_fund", name: "Venture Capital Fund", icon: "💡", description: "Fund early-stage startups", minInvestment: 10_000_000, riskLevel: .extreme, baseReturn: 0.20, volatility: 0.70, phaseUnlock: .legacyScale),
+    // Funds - BALANCED returns
+    Investment(id: "hedge_fund", name: "Hedge Fund", icon: "🎯", description: "Sophisticated strategies", minInvestment: 1_000_000, riskLevel: .high, baseReturn: 0.10, volatility: 0.35, phaseUnlock: .legacyScale),  // BALANCED: was 0.12
+    Investment(id: "pe_fund", name: "Private Equity Fund", icon: "🦈", description: "Buy and optimize companies", minInvestment: 5_000_000, riskLevel: .high, baseReturn: 0.11, volatility: 0.30, phaseUnlock: .legacyScale),  // BALANCED: was 0.15
+    Investment(id: "vc_fund", name: "Venture Capital Fund", icon: "💡", description: "Fund early-stage startups", minInvestment: 10_000_000, riskLevel: .extreme, baseReturn: 0.12, volatility: 0.70, phaseUnlock: .legacyScale),  // BALANCED: was 0.20
     
     // Trophy Assets
     Investment(id: "sports_team", name: "Sports Team Stake", icon: "🏈", description: "Pro sports franchise", minInvestment: 50_000_000, riskLevel: .medium, baseReturn: 0.10, volatility: 0.20, phaseUnlock: .legacyScale),
     Investment(id: "media_company", name: "Media Company", icon: "📺", description: "Entertainment empire", minInvestment: 100_000_000, riskLevel: .high, baseReturn: 0.12, volatility: 0.40, phaseUnlock: .legacyScale),
     Investment(id: "island", name: "Private Island", icon: "🏝️", description: "Exclusive real estate", minInvestment: 25_000_000, riskLevel: .medium, baseReturn: 0.04, volatility: 0.15, phaseUnlock: .legacyScale),
     
-    // Mega Investments
-    Investment(id: "infrastructure", name: "Infrastructure Project", icon: "🌉", description: "Bridges, roads, utilities", minInvestment: 500_000_000, riskLevel: .low, baseReturn: 0.065, volatility: 0.10, phaseUnlock: .legacyScale),
-    Investment(id: "space_venture", name: "Space Venture", icon: "🛸", description: "Asteroid mining, colonies", minInvestment: 1_000_000_000, riskLevel: .extreme, baseReturn: 0.25, volatility: 0.90, phaseUnlock: .legacyScale)
+    // Mega Investments - BALANCED returns
+    Investment(id: "infrastructure", name: "Infrastructure Project", icon: "🌉", description: "Bridges, roads, utilities", minInvestment: 500_000_000, riskLevel: .low, baseReturn: 0.055, volatility: 0.10, phaseUnlock: .legacyScale),
+    Investment(id: "space_venture", name: "Space Venture", icon: "🛸", description: "Asteroid mining, colonies", minInvestment: 1_000_000_000, riskLevel: .extreme, baseReturn: 0.08, volatility: 0.90, phaseUnlock: .legacyScale),
+    
+    // ═══════════════════════════════════════════════════════════════
+    // RISKY INVESTMENTS - Some good, some bad - player must research!
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Meme stocks - high volatility, unreliable
+    Investment(id: "meme_stock", name: "GameStop (GME)", icon: "🎮", description: "The original meme stock - EXTREMELY volatile", minInvestment: 100, riskLevel: .extreme, baseReturn: -0.05, volatility: 1.5, phaseUnlock: .hustle),
+    Investment(id: "amc", name: "AMC Entertainment", icon: "🎬", description: "Movie theater meme stock - ape together strong?", minInvestment: 100, riskLevel: .extreme, baseReturn: -0.10, volatility: 1.2, phaseUnlock: .hustle),
+    
+    // Penny stocks - mostly bad
+    Investment(id: "penny_stock_1", name: "BioMed Miracle Inc", icon: "💊", description: "Unproven drug company - promising or scam?", minInvestment: 50, riskLevel: .extreme, baseReturn: -0.30, volatility: 2.0, phaseUnlock: .hustle),
+    Investment(id: "penny_stock_2", name: "GreenTech Solutions", icon: "🌱", description: "Green energy penny stock - too good to be true?", minInvestment: 50, riskLevel: .extreme, baseReturn: -0.40, volatility: 2.5, phaseUnlock: .hustle),
+    Investment(id: "penny_stock_3", name: "AI Revolution Corp", icon: "🤖", description: "AI hype stock - no real product, just buzzwords", minInvestment: 25, riskLevel: .extreme, baseReturn: -0.50, volatility: 3.0, phaseUnlock: .hustle),
+    
+    // Scam coins - always bad
+    Investment(id: "scam_coin", name: "SafeMoon Ultra", icon: "🌙", description: "Promises 1000x returns - definitely not a scam...", minInvestment: 10, riskLevel: .extreme, baseReturn: -0.80, volatility: 5.0, phaseUnlock: .hustle),
+    Investment(id: "dog_coin", name: "DogeKiller Inu", icon: "🐕", description: "Another dog coin - will it moon or dump?", minInvestment: 10, riskLevel: .extreme, baseReturn: -0.60, volatility: 4.0, phaseUnlock: .hustle),
+    Investment(id: "nft_project", name: "Bored Ape Knockoff", icon: "🙈", description: "NFT project - art or money laundering?", minInvestment: 500, riskLevel: .extreme, baseReturn: -0.70, volatility: 3.5, phaseUnlock: .careerLeverage),
+    
+    // Failed startups
+    Investment(id: "failed_startup", name: "WeWork 2.0", icon: "🏢", description: "Office sharing startup - learned nothing from history", minInvestment: 10_000, riskLevel: .extreme, baseReturn: -0.50, volatility: 2.0, phaseUnlock: .careerLeverage),
+    Investment(id: "theranos_style", name: "BioBlood Analytics", icon: "🩸", description: "Blood testing startup - technology unproven", minInvestment: 25_000, riskLevel: .extreme, baseReturn: -0.60, volatility: 2.5, phaseUnlock: .portfolioEngine),
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MORE LEGITIMATE OPTIONS - Varying quality
+    // ═══════════════════════════════════════════════════════════════
+    
+    // More individual stocks
+    Investment(id: "dis", name: "Disney (DIS)", icon: "🏰", description: "Media & theme parks", minInvestment: 500, riskLevel: .medium, baseReturn: 0.06, volatility: 0.30, phaseUnlock: .careerLeverage),
+    Investment(id: "nflx", name: "Netflix (NFLX)", icon: "📺", description: "Streaming giant", minInvestment: 500, riskLevel: .medium, baseReturn: 0.08, volatility: 0.45, phaseUnlock: .careerLeverage),
+    Investment(id: "pypl", name: "PayPal (PYPL)", icon: "💸", description: "Digital payments - struggling lately", minInvestment: 300, riskLevel: .medium, baseReturn: 0.02, volatility: 0.50, phaseUnlock: .careerLeverage),
+    Investment(id: "baba", name: "Alibaba (BABA)", icon: "🇨🇳", description: "Chinese e-commerce - political risk", minInvestment: 500, riskLevel: .high, baseReturn: 0.03, volatility: 0.55, phaseUnlock: .careerLeverage),
+    Investment(id: "intc", name: "Intel (INTC)", icon: "💻", description: "Chip giant - falling behind competitors", minInvestment: 300, riskLevel: .medium, baseReturn: 0.01, volatility: 0.40, phaseUnlock: .careerLeverage),
+    Investment(id: "coin", name: "Coinbase (COIN)", icon: "🪙", description: "Crypto exchange - volatile with crypto", minInvestment: 200, riskLevel: .high, baseReturn: 0.05, volatility: 0.70, phaseUnlock: .careerLeverage),
+    
+    // Commodities
+    Investment(id: "gold", name: "Gold ETF (GLD)", icon: "🥇", description: "Safe haven asset - inflation hedge", minInvestment: 500, riskLevel: .low, baseReturn: 0.04, volatility: 0.15, phaseUnlock: .careerLeverage),
+    Investment(id: "silver", name: "Silver ETF (SLV)", icon: "🥈", description: "Industrial & precious metal", minInvestment: 300, riskLevel: .medium, baseReturn: 0.03, volatility: 0.25, phaseUnlock: .careerLeverage),
+    Investment(id: "oil", name: "Oil ETF (USO)", icon: "🛢️", description: "Black gold - geopolitical sensitive", minInvestment: 500, riskLevel: .high, baseReturn: 0.05, volatility: 0.45, phaseUnlock: .careerLeverage),
+    
+    // International
+    Investment(id: "vwo", name: "Emerging Markets (VWO)", icon: "🌍", description: "Developing economies exposure", minInvestment: 500, riskLevel: .medium, baseReturn: 0.06, volatility: 0.30, phaseUnlock: .careerLeverage),
+    Investment(id: "efa", name: "International (EFA)", icon: "🌐", description: "Developed markets ex-US", minInvestment: 500, riskLevel: .medium, baseReturn: 0.05, volatility: 0.22, phaseUnlock: .careerLeverage),
+    
+    // Sector specific
+    Investment(id: "xlf", name: "Financials (XLF)", icon: "🏦", description: "Banks and insurance", minInvestment: 300, riskLevel: .medium, baseReturn: 0.07, volatility: 0.28, phaseUnlock: .careerLeverage),
+    Investment(id: "xle", name: "Energy (XLE)", icon: "⚡", description: "Oil, gas, renewables", minInvestment: 300, riskLevel: .high, baseReturn: 0.06, volatility: 0.35, phaseUnlock: .careerLeverage),
+    Investment(id: "xlv", name: "Healthcare (XLV)", icon: "🏥", description: "Pharma and biotech", minInvestment: 300, riskLevel: .medium, baseReturn: 0.08, volatility: 0.20, phaseUnlock: .careerLeverage)
 ]
 
 // MARK: - Opportunity Cards
@@ -452,15 +502,16 @@ struct Upgrade: Identifiable, Codable {
     }
 }
 
+// BALANCED: Passive income values reduced by ~90% to prevent runaway growth
 let allUpgrades: [Upgrade] = [
     // Phase 1 Skills
     Upgrade(id: "typing", name: "Speed Typing", icon: "⌨️", description: "+10% tap value", cost: 500, effect: .tapMultiplier(0.1), category: .skills, phaseUnlock: .hustle),
-    Upgrade(id: "excel", name: "Excel Mastery", icon: "📊", description: "+$5/sec passive income", cost: 2000, effect: .passiveIncome(5), category: .skills, phaseUnlock: .hustle),
+    Upgrade(id: "excel", name: "Excel Mastery", icon: "📊", description: "+$0.10/sec passive income", cost: 2000, effect: .passiveIncome(0.1), category: .skills, phaseUnlock: .hustle),  // BALANCED: was 5
     Upgrade(id: "networking_101", name: "Networking 101", icon: "🤝", description: "+5% opportunity success", cost: 3000, effect: .opportunityBonus(0.05), category: .skills, phaseUnlock: .hustle),
     
     // Phase 1 Tools
     Upgrade(id: "laptop", name: "Better Laptop", icon: "💻", description: "+15% tap value", cost: 1500, effect: .tapMultiplier(0.15), category: .tools, phaseUnlock: .hustle),
-    Upgrade(id: "desk_setup", name: "Pro Desk Setup", icon: "🖥️", description: "+$10/sec passive", cost: 5000, effect: .passiveIncome(10), category: .tools, phaseUnlock: .hustle),
+    Upgrade(id: "desk_setup", name: "Pro Desk Setup", icon: "🖥️", description: "+$0.25/sec passive", cost: 5000, effect: .passiveIncome(0.25), category: .tools, phaseUnlock: .hustle),  // BALANCED: was 10
     
     // Phase 2 Skills
     Upgrade(id: "negotiation", name: "Negotiation Skills", icon: "💬", description: "+20% tap value", cost: 15000, effect: .tapMultiplier(0.2), category: .skills, phaseUnlock: .careerLeverage),
@@ -469,20 +520,20 @@ let allUpgrades: [Upgrade] = [
     
     // Phase 2 Network
     Upgrade(id: "mentor", name: "Find a Mentor", icon: "🧑‍🏫", description: "+10% opportunity success", cost: 20000, effect: .opportunityBonus(0.10), category: .network, phaseUnlock: .careerLeverage),
-    Upgrade(id: "mastermind", name: "Mastermind Group", icon: "🧠", description: "+$100/sec passive", cost: 75000, effect: .passiveIncome(100), category: .network, phaseUnlock: .careerLeverage),
+    Upgrade(id: "mastermind", name: "Mastermind Group", icon: "🧠", description: "+$2/sec passive", cost: 75000, effect: .passiveIncome(2), category: .network, phaseUnlock: .careerLeverage),  // BALANCED: was 100
     
     // Phase 3 Tools
-    Upgrade(id: "team", name: "Hire a Team", icon: "👥", description: "+$500/sec passive", cost: 500000, effect: .passiveIncome(500), category: .tools, phaseUnlock: .portfolioEngine),
+    Upgrade(id: "team", name: "Hire a Team", icon: "👥", description: "+$10/sec passive", cost: 500000, effect: .passiveIncome(10), category: .tools, phaseUnlock: .portfolioEngine),  // BALANCED: was 500
     Upgrade(id: "automation", name: "Business Automation", icon: "🤖", description: "+50% tap value", cost: 750000, effect: .tapMultiplier(0.5), category: .tools, phaseUnlock: .portfolioEngine),
     Upgrade(id: "advisors", name: "Financial Advisors", icon: "📋", description: "+10% investment returns", cost: 1000000, effect: .investmentBonus(0.10), category: .tools, phaseUnlock: .portfolioEngine),
     
     // Phase 3 Lifestyle
     Upgrade(id: "luxury_car", name: "Luxury Car", icon: "🏎️", description: "+100 status points", cost: 200000, effect: .statusBonus(100), category: .lifestyle, phaseUnlock: .portfolioEngine),
-    Upgrade(id: "penthouse", name: "Penthouse", icon: "🏙️", description: "+$1000/sec passive", cost: 5000000, effect: .passiveIncome(1000), category: .lifestyle, phaseUnlock: .portfolioEngine),
+    Upgrade(id: "penthouse", name: "Penthouse", icon: "🏙️", description: "+$25/sec passive", cost: 5000000, effect: .passiveIncome(25), category: .lifestyle, phaseUnlock: .portfolioEngine),  // BALANCED: was 1000
     
     // Phase 4
     Upgrade(id: "private_jet", name: "Private Jet", icon: "✈️", description: "+500 status points", cost: 25000000, effect: .statusBonus(500), category: .lifestyle, phaseUnlock: .legacyScale),
-    Upgrade(id: "yacht", name: "Super Yacht", icon: "🛥️", description: "+$10,000/sec passive", cost: 100000000, effect: .passiveIncome(10000), category: .lifestyle, phaseUnlock: .legacyScale),
+    Upgrade(id: "yacht", name: "Super Yacht", icon: "🛥️", description: "+$100/sec passive", cost: 100000000, effect: .passiveIncome(100), category: .lifestyle, phaseUnlock: .legacyScale),  // BALANCED: was 10000
     Upgrade(id: "foundation", name: "Charitable Foundation", icon: "❤️", description: "+2000 status, +20% opportunity", cost: 50000000, effect: .statusBonus(2000), category: .network, phaseUnlock: .legacyScale),
     Upgrade(id: "world_tour", name: "World Influence Tour", icon: "🌐", description: "+100% tap value", cost: 500000000, effect: .tapMultiplier(1.0), category: .network, phaseUnlock: .legacyScale)
 ]
@@ -527,6 +578,39 @@ struct Housing: Codable {
     var mortgageBalance: Double = 0
 }
 
+// MARK: - Company Benefit (from Contacts)
+struct CompanyBenefit: Codable {
+    var employeeGrant: [String: Int] = [:]  // Department rawValue -> count
+    var industryUnlock: String? = nil       // Industry rawValue to unlock
+    var tradeDealValue: Double = 0
+    var capitalRaised: Double = 0
+    var productSuccessBonus: Double = 0     // Temporary boost to product success
+    
+    /// Helper to set employees by department
+    static func employees(_ grants: [String: Int]) -> CompanyBenefit {
+        var benefit = CompanyBenefit()
+        benefit.employeeGrant = grants
+        return benefit
+    }
+    
+    /// Full constructor for complex benefits
+    static func full(
+        employees: [String: Int] = [:],
+        industry: String? = nil,
+        tradeDeal: Double = 0,
+        capital: Double = 0,
+        productBonus: Double = 0
+    ) -> CompanyBenefit {
+        CompanyBenefit(
+            employeeGrant: employees,
+            industryUnlock: industry,
+            tradeDealValue: tradeDeal,
+            capitalRaised: capital,
+            productSuccessBonus: productBonus
+        )
+    }
+}
+
 // MARK: - Meeting Contacts
 struct MeetingContact: Identifiable, Codable {
     let id: String
@@ -540,6 +624,13 @@ struct MeetingContact: Identifiable, Codable {
     
     // Career-specific contacts - nil means available to all careers
     var careerPath: CareerPath? = nil
+    
+    // Company benefits - employees, industry unlocks, trade deals
+    var companyBenefit: CompanyBenefit? = nil
+    
+    // Career level requirement - must reach this role level (0-indexed) to meet
+    // 0 = entry level, 1 = second role, etc.
+    var careerLevelRequired: Int = 0
     
     // Life of Wealth additions
     var factionRequired: Faction? = nil
@@ -974,172 +1065,184 @@ struct ContactRivalrySystem {
 }
 
 let allContacts: [MeetingContact] = [
-    // Phase 1 - Early Career (modest bonuses)
-    MeetingContact(id: "pm1", name: "Sarah Chen", title: "Project Manager", icon: "👩‍💼", statusRequired: 10, phaseRequired: .hustle, bonusOnMeet: 500),
-    MeetingContact(id: "lead1", name: "Mike Johnson", title: "Team Lead", icon: "👨‍💼", statusRequired: 25, phaseRequired: .hustle, bonusOnMeet: 1000),
-    MeetingContact(id: "manager1", name: "Lisa Park", title: "Department Manager", icon: "👩‍💻", statusRequired: 50, phaseRequired: .hustle, bonusOnMeet: 2500),
+    // ═══════════════════════════════════════════════════════════════
+    // Phase 1 - Early Career (REDUCED bonuses, small company benefits)
+    // Cash reduced by 90% - focus on company benefits instead
+    // Career level gates contacts - must progress in career to meet people
+    // ═══════════════════════════════════════════════════════════════
+    MeetingContact(id: "pm1", name: "Sarah Chen", title: "Project Manager", icon: "👩‍💼", statusRequired: 10, phaseRequired: .hustle, bonusOnMeet: 50, careerLevelRequired: 0),
+    MeetingContact(id: "lead1", name: "Mike Johnson", title: "Team Lead", icon: "👨‍💼", statusRequired: 25, phaseRequired: .hustle, bonusOnMeet: 100, careerLevelRequired: 1),
+    MeetingContact(id: "manager1", name: "Lisa Park", title: "Department Manager", icon: "👩‍💻", statusRequired: 50, phaseRequired: .hustle, bonusOnMeet: 250, companyBenefit: CompanyBenefit.employees(["HR": 1]), careerLevelRequired: 1),
     
-    // Phase 2 - Corporate Ladder
-    MeetingContact(id: "director1", name: "James Williams", title: "Director", icon: "🧑‍💼", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 5000),
-    MeetingContact(id: "vp1", name: "Amanda Foster", title: "VP of Operations", icon: "👔", statusRequired: 200, phaseRequired: .careerLeverage, bonusOnMeet: 15000),
-    MeetingContact(id: "cfo1", name: "Robert Kim", title: "CFO", icon: "💼", statusRequired: 400, phaseRequired: .careerLeverage, bonusOnMeet: 50000),
+    // Phase 2 - Corporate Ladder (reduced cash, meaningful benefits)
+    MeetingContact(id: "director1", name: "James Williams", title: "Director", icon: "🧑‍💼", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 500, companyBenefit: CompanyBenefit.employees(["Sales": 1]), careerLevelRequired: 2),
+    MeetingContact(id: "vp1", name: "Amanda Foster", title: "VP of Operations", icon: "👔", statusRequired: 200, phaseRequired: .careerLeverage, bonusOnMeet: 1500, companyBenefit: CompanyBenefit.employees(["HR": 1, "Marketing": 1]), careerLevelRequired: 2),
+    MeetingContact(id: "cfo1", name: "Robert Kim", title: "CFO", icon: "💼", statusRequired: 400, phaseRequired: .careerLeverage, bonusOnMeet: 5000, companyBenefit: CompanyBenefit.full(employees: ["Finance": 2], capital: 50_000), careerLevelRequired: 3),
     
     // ═══════════════════════════════════════════════════════════════
     // PODCAST APPEARANCES - Build your way up!
+    // Cash reduced 90%, marketing employees as benefit
+    // Career level gates - must have career credibility to get on shows
     // ═══════════════════════════════════════════════════════════════
     
-    // Local/Niche Podcasts (Phase 2)
-    MeetingContact(id: "podcast_local", name: "Local Business Podcast", title: "Regional exposure", icon: "🎙️", statusRequired: 150, phaseRequired: .careerLeverage, bonusOnMeet: 3000),
-    MeetingContact(id: "podcast_industry", name: "Industry Newsletter", title: "Niche credibility", icon: "📰", statusRequired: 300, phaseRequired: .careerLeverage, bonusOnMeet: 8000),
+    // Local/Niche Podcasts (Phase 2) - need to be established in career
+    MeetingContact(id: "podcast_local", name: "Local Business Podcast", title: "Regional exposure", icon: "🎙️", statusRequired: 150, phaseRequired: .careerLeverage, bonusOnMeet: 300, companyBenefit: CompanyBenefit.employees(["Marketing": 1]), careerLevelRequired: 2),
+    MeetingContact(id: "podcast_industry", name: "Industry Newsletter", title: "Niche credibility", icon: "📰", statusRequired: 300, phaseRequired: .careerLeverage, bonusOnMeet: 800, companyBenefit: CompanyBenefit.employees(["Marketing": 1]), careerLevelRequired: 2),
     
-    // Mid-Tier Podcasts (Phase 3)
-    MeetingContact(id: "podcast_tbpn", name: "The Business Podcast Network", title: "Growing audience", icon: "🎧", statusRequired: 600, phaseRequired: .portfolioEngine, bonusOnMeet: 25000),
-    MeetingContact(id: "podcast_starter", name: "Starter Story", title: "Entrepreneur community", icon: "🚀", statusRequired: 900, phaseRequired: .portfolioEngine, bonusOnMeet: 40000),
-    MeetingContact(id: "podcast_indie", name: "Indie Hackers", title: "Bootstrapper cred", icon: "💻", statusRequired: 1200, phaseRequired: .portfolioEngine, bonusOnMeet: 60000),
+    // Mid-Tier Podcasts (Phase 3) - need senior-level career
+    MeetingContact(id: "podcast_tbpn", name: "The Business Podcast Network", title: "Growing audience", icon: "🎧", statusRequired: 600, phaseRequired: .portfolioEngine, bonusOnMeet: 2500, companyBenefit: CompanyBenefit.employees(["Marketing": 2]), careerLevelRequired: 3),
+    MeetingContact(id: "podcast_starter", name: "Starter Story", title: "Entrepreneur community", icon: "🚀", statusRequired: 900, phaseRequired: .portfolioEngine, bonusOnMeet: 4000, companyBenefit: CompanyBenefit.employees(["Marketing": 1, "Sales": 1]), careerLevelRequired: 3),
+    MeetingContact(id: "podcast_indie", name: "Indie Hackers", title: "Bootstrapper cred", icon: "💻", statusRequired: 1200, phaseRequired: .portfolioEngine, bonusOnMeet: 6000, companyBenefit: CompanyBenefit.employees(["Engineering": 1, "Marketing": 1]), careerLevelRequired: 3),
     
-    // Major Podcasts (Phase 3-4)
-    MeetingContact(id: "podcast_mfm", name: "My First Million", title: "Sam & Shaan's show", icon: "💰", statusRequired: 2000, phaseRequired: .portfolioEngine, bonusOnMeet: 150000, factionRequired: .startup, factionReputationRequired: 30),
-    MeetingContact(id: "podcast_allIn", name: "All-In Podcast", title: "The Besties", icon: "🎲", statusRequired: 4000, phaseRequired: .portfolioEngine, bonusOnMeet: 300000, factionRequired: .startup, factionReputationRequired: 45),
-    MeetingContact(id: "podcast_doac", name: "Diary of a CEO", title: "Steven Bartlett", icon: "📖", statusRequired: 3500, phaseRequired: .portfolioEngine, bonusOnMeet: 250000, factionRequired: .creator, factionReputationRequired: 40),
+    // Major Podcasts (Phase 3-4) - need leadership role
+    MeetingContact(id: "podcast_mfm", name: "My First Million", title: "Sam & Shaan's show", icon: "💰", statusRequired: 2000, phaseRequired: .portfolioEngine, bonusOnMeet: 15000, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 2, "Sales": 2], capital: 100_000), careerLevelRequired: 4, factionRequired: .startup, factionReputationRequired: 30),
+    MeetingContact(id: "podcast_allIn", name: "All-In Podcast", title: "The Besties", icon: "🎲", statusRequired: 4000, phaseRequired: .portfolioEngine, bonusOnMeet: 30000, companyBenefit: CompanyBenefit.full(employees: ["Finance": 2, "Engineering": 1], capital: 500_000), careerLevelRequired: 5, factionRequired: .startup, factionReputationRequired: 45),
+    MeetingContact(id: "podcast_doac", name: "Diary of a CEO", title: "Steven Bartlett", icon: "📖", statusRequired: 3500, phaseRequired: .portfolioEngine, bonusOnMeet: 25000, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 3], capital: 250_000), careerLevelRequired: 4, factionRequired: .creator, factionReputationRequired: 40),
     
-    // Top-Tier Podcasts (Phase 4)
-    MeetingContact(id: "podcast_lex", name: "Lex Fridman Podcast", title: "3-hour deep dive", icon: "🤖", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 500000, factionRequired: .startup, factionReputationRequired: 55),
-    MeetingContact(id: "podcast_huberman", name: "Huberman Lab", title: "Science credibility", icon: "🧠", statusRequired: 5500, phaseRequired: .legacyScale, bonusOnMeet: 400000, factionRequired: .corporate, factionReputationRequired: 50),
-    MeetingContact(id: "podcast_rogan", name: "Joe Rogan Experience", title: "The biggest platform", icon: "🎤", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 1000000, factionRequired: .creator, factionReputationRequired: 70),
-    
-    // ═══════════════════════════════════════════════════════════════
-    // INDUSTRY PLAYERS (Phase 3)
-    // ═══════════════════════════════════════════════════════════════
-    
-    MeetingContact(id: "ceo1", name: "Victoria Hayes", title: "Fortune 500 CEO", icon: "👑", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 75000),
-    MeetingContact(id: "investor1", name: "Marcus Reid", title: "Venture Capitalist", icon: "💰", statusRequired: 1500, phaseRequired: .portfolioEngine, bonusOnMeet: 150000),
-    MeetingContact(id: "celebrity1", name: "Celebrity Connection", title: "A-List Celebrity", icon: "⭐", statusRequired: 3000, phaseRequired: .portfolioEngine, bonusOnMeet: 300000),
+    // Top-Tier Podcasts (Phase 4) - need executive level
+    MeetingContact(id: "podcast_lex", name: "Lex Fridman Podcast", title: "3-hour deep dive", icon: "🤖", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 50000, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 3, "Marketing": 2], capital: 1_000_000), careerLevelRequired: 5, factionRequired: .startup, factionReputationRequired: 55),
+    MeetingContact(id: "podcast_huberman", name: "Huberman Lab", title: "Science credibility", icon: "🧠", statusRequired: 5500, phaseRequired: .legacyScale, bonusOnMeet: 40000, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 2, "HR": 1], capital: 500_000), careerLevelRequired: 5, factionRequired: .corporate, factionReputationRequired: 50),
+    MeetingContact(id: "podcast_rogan", name: "Joe Rogan Experience", title: "The biggest platform", icon: "🎤", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 100000, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 5, "Sales": 3], capital: 2_000_000), careerLevelRequired: 6, factionRequired: .creator, factionReputationRequired: 70),
     
     // ═══════════════════════════════════════════════════════════════
-    // TECH TITANS (Phase 4) - REDUCED bonuses, strategic value
+    // INDUSTRY PLAYERS (Phase 3) - Cash reduced 90%, company benefits
+    // Need leadership career level to network with executives
     // ═══════════════════════════════════════════════════════════════
     
-    MeetingContact(id: "timcook", name: "Tim Cook", title: "Apple CEO", icon: "🍎", statusRequired: 7000, phaseRequired: .legacyScale, bonusOnMeet: 500000, factionRequired: .corporate, factionReputationRequired: 55),
-    MeetingContact(id: "satya", name: "Satya Nadella", title: "Microsoft CEO", icon: "🪟", statusRequired: 7500, phaseRequired: .legacyScale, bonusOnMeet: 600000, factionRequired: .corporate, factionReputationRequired: 55),
-    MeetingContact(id: "sundar", name: "Sundar Pichai", title: "Google CEO", icon: "🔍", statusRequired: 8000, phaseRequired: .legacyScale, bonusOnMeet: 700000, factionRequired: .startup, factionReputationRequired: 55),
+    MeetingContact(id: "ceo1", name: "Victoria Hayes", title: "Fortune 500 CEO", icon: "👑", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 7500, companyBenefit: CompanyBenefit.full(employees: ["HR": 2, "Finance": 1], capital: 200_000), careerLevelRequired: 4),
+    MeetingContact(id: "investor1", name: "Marcus Reid", title: "Venture Capitalist", icon: "💰", statusRequired: 1500, phaseRequired: .portfolioEngine, bonusOnMeet: 15000, companyBenefit: CompanyBenefit.full(employees: ["Finance": 2], capital: 500_000), careerLevelRequired: 4),
+    MeetingContact(id: "celebrity1", name: "Celebrity Connection", title: "A-List Celebrity", icon: "⭐", statusRequired: 3000, phaseRequired: .portfolioEngine, bonusOnMeet: 30000, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 3], capital: 300_000), careerLevelRequired: 4),
     
-    // AI Visionaries (Strategic value, but rivalries!)
-    MeetingContact(id: "sam_altman", name: "Sam Altman", title: "OpenAI CEO", icon: "🤖", statusRequired: 12000, phaseRequired: .legacyScale, bonusOnMeet: 800000, factionRequired: .startup, factionReputationRequired: 65),
-    MeetingContact(id: "demis_hassabis", name: "Demis Hassabis", title: "DeepMind CEO", icon: "🧠", statusRequired: 13000, phaseRequired: .legacyScale, bonusOnMeet: 900000, factionRequired: .startup, factionReputationRequired: 70),
-    MeetingContact(id: "jensen_huang", name: "Jensen Huang", title: "NVIDIA CEO", icon: "🎮", statusRequired: 14000, phaseRequired: .legacyScale, bonusOnMeet: 1000000, factionRequired: .startup, factionReputationRequired: 65),
+    // ═══════════════════════════════════════════════════════════════
+    // TECH TITANS (Phase 4) - Cash reduced 90%, massive company value
+    // Need executive career level - these are peer-level meetings
+    // ═══════════════════════════════════════════════════════════════
+    
+    MeetingContact(id: "timcook", name: "Tim Cook", title: "Apple CEO", icon: "🍎", statusRequired: 7000, phaseRequired: .legacyScale, bonusOnMeet: 50000, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 5, "Sales": 3], industry: "Software", capital: 2_000_000), careerLevelRequired: 6, factionRequired: .corporate, factionReputationRequired: 55),
+    MeetingContact(id: "satya", name: "Satya Nadella", title: "Microsoft CEO", icon: "🪟", statusRequired: 7500, phaseRequired: .legacyScale, bonusOnMeet: 60000, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 5, "HR": 2], industry: "Software", capital: 2_500_000), careerLevelRequired: 6, factionRequired: .corporate, factionReputationRequired: 55),
+    MeetingContact(id: "sundar", name: "Sundar Pichai", title: "Google CEO", icon: "🔍", statusRequired: 8000, phaseRequired: .legacyScale, bonusOnMeet: 70000, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 6, "Marketing": 2], industry: "Artificial Intelligence", capital: 3_000_000), careerLevelRequired: 6, factionRequired: .startup, factionReputationRequired: 55),
+    
+    // AI Visionaries (Strategic value, but rivalries!) - huge company benefits
+    MeetingContact(id: "sam_altman", name: "Sam Altman", title: "OpenAI CEO", icon: "🤖", statusRequired: 12000, phaseRequired: .legacyScale, bonusOnMeet: 80000, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 8], industry: "Artificial Intelligence", capital: 5_000_000), careerLevelRequired: 6, factionRequired: .startup, factionReputationRequired: 65),
+    MeetingContact(id: "demis_hassabis", name: "Demis Hassabis", title: "DeepMind CEO", icon: "🧠", statusRequired: 13000, phaseRequired: .legacyScale, bonusOnMeet: 90000, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 7], industry: "Artificial Intelligence", capital: 4_000_000), careerLevelRequired: 6, factionRequired: .startup, factionReputationRequired: 70),
+    MeetingContact(id: "jensen_huang", name: "Jensen Huang", title: "NVIDIA CEO", icon: "🎮", statusRequired: 14000, phaseRequired: .legacyScale, bonusOnMeet: 100000, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 10], industry: "Data Centers", capital: 8_000_000), careerLevelRequired: 6, factionRequired: .startup, factionReputationRequired: 65),
     
     // Elon & Mars (High value but HIGH RISK - many rivalries)
-    MeetingContact(id: "elon", name: "Elon Musk", title: "Tesla/SpaceX/xAI", icon: "🚀", statusRequired: 20000, phaseRequired: .legacyScale, bonusOnMeet: 2000000, factionRequired: .startup, factionReputationRequired: 80),
+    MeetingContact(id: "elon", name: "Elon Musk", title: "Tesla/SpaceX/xAI", icon: "🚀", statusRequired: 20000, phaseRequired: .legacyScale, bonusOnMeet: 200000, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 10, "Sales": 5], industry: "Space", capital: 20_000_000), careerLevelRequired: 7, factionRequired: .startup, factionReputationRequired: 80),
     
     // Finance Titans (Old money network - safer, alliances)
-    MeetingContact(id: "warren_buffett", name: "Warren Buffett", title: "Berkshire Hathaway", icon: "📈", statusRequired: 15000, phaseRequired: .legacyScale, bonusOnMeet: 1500000, factionRequired: .oldMoney, factionReputationRequired: 75),
-    MeetingContact(id: "jamie_dimon", name: "Jamie Dimon", title: "JPMorgan Chase CEO", icon: "🏦", statusRequired: 12000, phaseRequired: .legacyScale, bonusOnMeet: 1000000, factionRequired: .corporate, factionReputationRequired: 70),
-    MeetingContact(id: "ray_dalio", name: "Ray Dalio", title: "Bridgewater Founder", icon: "🌊", statusRequired: 16000, phaseRequired: .legacyScale, bonusOnMeet: 1200000, factionRequired: .oldMoney, factionReputationRequired: 75),
+    MeetingContact(id: "warren_buffett", name: "Warren Buffett", title: "Berkshire Hathaway", icon: "📈", statusRequired: 15000, phaseRequired: .legacyScale, bonusOnMeet: 150000, companyBenefit: CompanyBenefit.full(employees: ["Finance": 8], capital: 10_000_000), careerLevelRequired: 7, factionRequired: .oldMoney, factionReputationRequired: 75),
+    MeetingContact(id: "jamie_dimon", name: "Jamie Dimon", title: "JPMorgan Chase CEO", icon: "🏦", statusRequired: 12000, phaseRequired: .legacyScale, bonusOnMeet: 100000, companyBenefit: CompanyBenefit.full(employees: ["Finance": 6], industry: "Fintech", capital: 8_000_000), careerLevelRequired: 6, factionRequired: .corporate, factionReputationRequired: 70),
+    MeetingContact(id: "ray_dalio", name: "Ray Dalio", title: "Bridgewater Founder", icon: "🌊", statusRequired: 16000, phaseRequired: .legacyScale, bonusOnMeet: 120000, companyBenefit: CompanyBenefit.full(employees: ["Finance": 5, "Engineering": 3], capital: 12_000_000), careerLevelRequired: 7, factionRequired: .oldMoney, factionReputationRequired: 75),
     
     // Creator Economy (General)
-    MeetingContact(id: "mrBeast", name: "MrBeast", title: "YouTube Mogul", icon: "📱", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 800000, factionRequired: .creator, factionReputationRequired: 65),
+    MeetingContact(id: "mrBeast", name: "MrBeast", title: "YouTube Mogul", icon: "📱", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 80000, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 10, "Sales": 5], capital: 5_000_000), careerLevelRequired: 6, factionRequired: .creator, factionReputationRequired: 65),
     
     // Political Power (Very high risk - everyone has an opinion)
-    MeetingContact(id: "president", name: "The President", title: "Leader of the Free World", icon: "🏛️", statusRequired: 50000, phaseRequired: .legacyScale, bonusOnMeet: 5000000),
+    MeetingContact(id: "president", name: "The President", title: "Leader of the Free World", icon: "🏛️", statusRequired: 50000, phaseRequired: .legacyScale, bonusOnMeet: 500000, companyBenefit: CompanyBenefit.full(employees: ["HR": 5, "Finance": 5], capital: 50_000_000), careerLevelRequired: 7),
     
     // ═══════════════════════════════════════════════════════════════
-    // CREATOR/MEDIA CAREER PATH - YouTubers, Influencers, Hollywood
+    // CREATOR/MEDIA CAREER PATH - Cash reduced 90%, marketing benefits
+    // Career level gates - must build your creator career to meet peers
     // ═══════════════════════════════════════════════════════════════
     
-    // Phase 2 - Starting Out in Media
-    MeetingContact(id: "local_influencer", name: "Local Influencer", title: "10K followers", icon: "📸", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 3000, careerPath: .creator),
-    MeetingContact(id: "podcast_host", name: "Podcast Host", title: "Growing show", icon: "🎙️", statusRequired: 200, phaseRequired: .careerLeverage, bonusOnMeet: 8000, careerPath: .creator),
-    MeetingContact(id: "talent_agent", name: "Talent Agent", title: "Hollywood connections", icon: "🎬", statusRequired: 350, phaseRequired: .careerLeverage, bonusOnMeet: 20000, careerPath: .creator),
+    // Phase 2 - Starting Out in Media (need to be a real creator first)
+    MeetingContact(id: "local_influencer", name: "Local Influencer", title: "10K followers", icon: "📸", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 300, careerPath: .creator, companyBenefit: CompanyBenefit.employees(["Marketing": 1]), careerLevelRequired: 1),
+    MeetingContact(id: "podcast_host", name: "Podcast Host", title: "Growing show", icon: "🎙️", statusRequired: 200, phaseRequired: .careerLeverage, bonusOnMeet: 800, careerPath: .creator, companyBenefit: CompanyBenefit.employees(["Marketing": 1]), careerLevelRequired: 2),
+    MeetingContact(id: "talent_agent", name: "Talent Agent", title: "Hollywood connections", icon: "🎬", statusRequired: 350, phaseRequired: .careerLeverage, bonusOnMeet: 2000, careerPath: .creator, companyBenefit: CompanyBenefit.employees(["Marketing": 2, "Sales": 1]), careerLevelRequired: 2),
     
     // Phase 3 - Mid-Tier Creators (Mixed bag - some risky!)
-    MeetingContact(id: "david_dobrik", name: "David Dobrik", title: "Vlog Squad", icon: "📹", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 50000, careerPath: .creator, isRiskyInvestment: true, riskDescription: "Controversy history - could damage your brand"),
-    MeetingContact(id: "emma_chamberlain", name: "Emma Chamberlain", title: "Coffee & Content", icon: "☕", statusRequired: 900, phaseRequired: .portfolioEngine, bonusOnMeet: 80000, careerPath: .creator),
-    MeetingContact(id: "charli_damelio", name: "Charli D'Amelio", title: "TikTok Star", icon: "💃", statusRequired: 1000, phaseRequired: .portfolioEngine, bonusOnMeet: 70000, careerPath: .creator),
-    MeetingContact(id: "khaby_lame", name: "Khaby Lame", title: "Silent Comedy King", icon: "🤷", statusRequired: 1200, phaseRequired: .portfolioEngine, bonusOnMeet: 100000, careerPath: .creator),
+    MeetingContact(id: "david_dobrik", name: "David Dobrik", title: "Vlog Squad", icon: "📹", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 5000, careerPath: .creator, companyBenefit: CompanyBenefit.employees(["Marketing": 2]), careerLevelRequired: 3, isRiskyInvestment: true, riskDescription: "Controversy history - could damage your brand"),
+    MeetingContact(id: "emma_chamberlain", name: "Emma Chamberlain", title: "Coffee & Content", icon: "☕", statusRequired: 900, phaseRequired: .portfolioEngine, bonusOnMeet: 8000, careerPath: .creator, companyBenefit: CompanyBenefit.employees(["Marketing": 3]), careerLevelRequired: 3),
+    MeetingContact(id: "charli_damelio", name: "Charli D'Amelio", title: "TikTok Star", icon: "💃", statusRequired: 1000, phaseRequired: .portfolioEngine, bonusOnMeet: 7000, careerPath: .creator, companyBenefit: CompanyBenefit.employees(["Marketing": 3]), careerLevelRequired: 3),
+    MeetingContact(id: "khaby_lame", name: "Khaby Lame", title: "Silent Comedy King", icon: "🤷", statusRequired: 1200, phaseRequired: .portfolioEngine, bonusOnMeet: 10000, careerPath: .creator, companyBenefit: CompanyBenefit.employees(["Marketing": 4]), careerLevelRequired: 3),
     
     // Phase 3-4 - Wrestling/Sports Entertainment
-    MeetingContact(id: "logan_paul", name: "Logan Paul", title: "PRIME & WWE", icon: "🥊", statusRequired: 2000, phaseRequired: .portfolioEngine, bonusOnMeet: 200000, careerPath: .creator),
-    MeetingContact(id: "the_rock", name: "Dwayne Johnson", title: "The Rock", icon: "💪", statusRequired: 5000, phaseRequired: .legacyScale, bonusOnMeet: 600000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 50),
+    MeetingContact(id: "logan_paul", name: "Logan Paul", title: "PRIME & WWE", icon: "🥊", statusRequired: 2000, phaseRequired: .portfolioEngine, bonusOnMeet: 20000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 5, "Sales": 3], capital: 500_000), careerLevelRequired: 4),
+    MeetingContact(id: "the_rock", name: "Dwayne Johnson", title: "The Rock", icon: "💪", statusRequired: 5000, phaseRequired: .legacyScale, bonusOnMeet: 60000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 8, "Sales": 4], capital: 2_000_000), careerLevelRequired: 5, factionRequired: .creator, factionReputationRequired: 50),
     
     // Phase 4 - A-List Hollywood
-    MeetingContact(id: "margot_robbie", name: "Margot Robbie", title: "Hollywood A-List", icon: "🌟", statusRequired: 8000, phaseRequired: .legacyScale, bonusOnMeet: 500000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 55),
-    MeetingContact(id: "brad_pitt", name: "Brad Pitt", title: "Hollywood Legend", icon: "🎭", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 700000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 60),
-    MeetingContact(id: "timothee_chalamet", name: "Timothée Chalamet", title: "Gen Z Icon", icon: "🎬", statusRequired: 7000, phaseRequired: .legacyScale, bonusOnMeet: 450000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 50),
-    MeetingContact(id: "zendaya", name: "Zendaya", title: "Multi-Hyphenate Star", icon: "✨", statusRequired: 7500, phaseRequired: .legacyScale, bonusOnMeet: 500000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 52),
+    MeetingContact(id: "margot_robbie", name: "Margot Robbie", title: "Hollywood A-List", icon: "🌟", statusRequired: 8000, phaseRequired: .legacyScale, bonusOnMeet: 50000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 5], capital: 1_000_000), careerLevelRequired: 5, factionRequired: .creator, factionReputationRequired: 55),
+    MeetingContact(id: "brad_pitt", name: "Brad Pitt", title: "Hollywood Legend", icon: "🎭", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 70000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 6], capital: 2_000_000), careerLevelRequired: 6, factionRequired: .creator, factionReputationRequired: 60),
+    MeetingContact(id: "timothee_chalamet", name: "Timothée Chalamet", title: "Gen Z Icon", icon: "🎬", statusRequired: 7000, phaseRequired: .legacyScale, bonusOnMeet: 45000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 5], capital: 800_000), careerLevelRequired: 5, factionRequired: .creator, factionReputationRequired: 50),
+    MeetingContact(id: "zendaya", name: "Zendaya", title: "Multi-Hyphenate Star", icon: "✨", statusRequired: 7500, phaseRequired: .legacyScale, bonusOnMeet: 50000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 5], capital: 1_000_000), careerLevelRequired: 5, factionRequired: .creator, factionReputationRequired: 52),
     
     // Phase 4 - Music Industry
-    MeetingContact(id: "kid_cudi", name: "Kid Cudi", title: "Artist & Visionary", icon: "🌙", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 400000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 45),
-    MeetingContact(id: "kanye", name: "Kanye West", title: "Ye", icon: "🐻", statusRequired: 9000, phaseRequired: .legacyScale, bonusOnMeet: 300000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 60, isRiskyInvestment: true, riskDescription: "EXTREMELY unpredictable - could 10x or destroy you"),
-    MeetingContact(id: "taylor_swift", name: "Taylor Swift", title: "Music Industry Titan", icon: "🎤", statusRequired: 15000, phaseRequired: .legacyScale, bonusOnMeet: 1500000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 75),
-    MeetingContact(id: "drake", name: "Drake", title: "OVO Sound", icon: "🦉", statusRequired: 11000, phaseRequired: .legacyScale, bonusOnMeet: 900000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 65),
-    MeetingContact(id: "rihanna", name: "Rihanna", title: "Fenty Empire", icon: "💎", statusRequired: 12000, phaseRequired: .legacyScale, bonusOnMeet: 1000000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 70),
+    MeetingContact(id: "kid_cudi", name: "Kid Cudi", title: "Artist & Visionary", icon: "🌙", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 40000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 4], capital: 500_000), careerLevelRequired: 5, factionRequired: .creator, factionReputationRequired: 45),
+    MeetingContact(id: "kanye", name: "Kanye West", title: "Ye", icon: "🐻", statusRequired: 9000, phaseRequired: .legacyScale, bonusOnMeet: 30000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 3], capital: 200_000), careerLevelRequired: 6, factionRequired: .creator, factionReputationRequired: 60, isRiskyInvestment: true, riskDescription: "EXTREMELY unpredictable - could 10x or destroy you"),
+    MeetingContact(id: "taylor_swift", name: "Taylor Swift", title: "Music Industry Titan", icon: "🎤", statusRequired: 15000, phaseRequired: .legacyScale, bonusOnMeet: 150000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 10, "Sales": 5], capital: 10_000_000), careerLevelRequired: 7, factionRequired: .creator, factionReputationRequired: 75),
+    MeetingContact(id: "drake", name: "Drake", title: "OVO Sound", icon: "🦉", statusRequired: 11000, phaseRequired: .legacyScale, bonusOnMeet: 90000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 7], capital: 3_000_000), careerLevelRequired: 6, factionRequired: .creator, factionReputationRequired: 65),
+    MeetingContact(id: "rihanna", name: "Rihanna", title: "Fenty Empire", icon: "💎", statusRequired: 12000, phaseRequired: .legacyScale, bonusOnMeet: 100000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 8, "Sales": 4], capital: 5_000_000), careerLevelRequired: 6, factionRequired: .creator, factionReputationRequired: 70),
     
     // Phase 4 - Media Moguls
-    MeetingContact(id: "oprah", name: "Oprah Winfrey", title: "Media Mogul", icon: "👑", statusRequired: 18000, phaseRequired: .legacyScale, bonusOnMeet: 1200000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 80),
-    MeetingContact(id: "kim_k", name: "Kim Kardashian", title: "Reality & Business", icon: "💄", statusRequired: 8000, phaseRequired: .legacyScale, bonusOnMeet: 600000, careerPath: .creator, factionRequired: .creator, factionReputationRequired: 55),
+    MeetingContact(id: "oprah", name: "Oprah Winfrey", title: "Media Mogul", icon: "👑", statusRequired: 18000, phaseRequired: .legacyScale, bonusOnMeet: 120000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 10, "HR": 5], capital: 8_000_000), careerLevelRequired: 7, factionRequired: .creator, factionReputationRequired: 80),
+    MeetingContact(id: "kim_k", name: "Kim Kardashian", title: "Reality & Business", icon: "💄", statusRequired: 8000, phaseRequired: .legacyScale, bonusOnMeet: 60000, careerPath: .creator, companyBenefit: CompanyBenefit.full(employees: ["Marketing": 8, "Sales": 4], capital: 2_000_000), careerLevelRequired: 5, factionRequired: .creator, factionReputationRequired: 55),
     
     // ═══════════════════════════════════════════════════════════════
-    // FINANCE CAREER PATH - Wall Street, Hedge Funds, Crypto
+    // FINANCE CAREER PATH - Cash reduced 90%, finance dept benefits
+    // Career level gates - must build finance career to meet peers
     // ═══════════════════════════════════════════════════════════════
     
     // Phase 2 - Starting in Finance
-    MeetingContact(id: "analyst", name: "Senior Analyst", title: "Goldman Sachs", icon: "📊", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 5000, careerPath: .finance),
-    MeetingContact(id: "trader", name: "Floor Trader", title: "NYSE Veteran", icon: "📈", statusRequired: 250, phaseRequired: .careerLeverage, bonusOnMeet: 12000, careerPath: .finance),
-    MeetingContact(id: "quant", name: "Quant Developer", title: "Algorithmic Trading", icon: "🔢", statusRequired: 400, phaseRequired: .careerLeverage, bonusOnMeet: 25000, careerPath: .finance),
+    MeetingContact(id: "analyst", name: "Senior Analyst", title: "Goldman Sachs", icon: "📊", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 500, careerPath: .finance, companyBenefit: CompanyBenefit.employees(["Finance": 1]), careerLevelRequired: 1),
+    MeetingContact(id: "trader", name: "Floor Trader", title: "NYSE Veteran", icon: "📈", statusRequired: 250, phaseRequired: .careerLeverage, bonusOnMeet: 1200, careerPath: .finance, companyBenefit: CompanyBenefit.employees(["Finance": 1, "Sales": 1]), careerLevelRequired: 2),
+    MeetingContact(id: "quant", name: "Quant Developer", title: "Algorithmic Trading", icon: "🔢", statusRequired: 400, phaseRequired: .careerLeverage, bonusOnMeet: 2500, careerPath: .finance, companyBenefit: CompanyBenefit.employees(["Finance": 2, "Engineering": 1]), careerLevelRequired: 2),
     
     // Phase 3 - Finance Mid-Career
-    MeetingContact(id: "fund_manager", name: "Fund Manager", title: "Manages $500M", icon: "💹", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 80000, careerPath: .finance),
-    MeetingContact(id: "pe_partner", name: "PE Partner", title: "Private Equity", icon: "🦈", statusRequired: 1500, phaseRequired: .portfolioEngine, bonusOnMeet: 150000, careerPath: .finance),
+    MeetingContact(id: "fund_manager", name: "Fund Manager", title: "Manages $500M", icon: "💹", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 8000, careerPath: .finance, companyBenefit: CompanyBenefit.full(employees: ["Finance": 3], capital: 200_000), careerLevelRequired: 3),
+    MeetingContact(id: "pe_partner", name: "PE Partner", title: "Private Equity", icon: "🦈", statusRequired: 1500, phaseRequired: .portfolioEngine, bonusOnMeet: 15000, careerPath: .finance, companyBenefit: CompanyBenefit.full(employees: ["Finance": 4], capital: 500_000), careerLevelRequired: 4),
     
     // Phase 3-4 - Crypto/DeFi
-    MeetingContact(id: "sbf", name: "Sam Bankman-Fried", title: "Former FTX", icon: "💀", statusRequired: 500, phaseRequired: .portfolioEngine, bonusOnMeet: -100000, careerPath: .finance, isRiskyInvestment: true, riskDescription: "AVOID - Convicted fraud"),
-    MeetingContact(id: "cz", name: "CZ (Changpeng Zhao)", title: "Binance Founder", icon: "🔶", statusRequired: 3000, phaseRequired: .portfolioEngine, bonusOnMeet: 200000, careerPath: .finance, isRiskyInvestment: true, riskDescription: "Regulatory risk - proceed with caution"),
-    MeetingContact(id: "vitalik", name: "Vitalik Buterin", title: "Ethereum Creator", icon: "⟠", statusRequired: 4000, phaseRequired: .legacyScale, bonusOnMeet: 400000, careerPath: .finance, factionRequired: .startup, factionReputationRequired: 50),
+    MeetingContact(id: "sbf", name: "Sam Bankman-Fried", title: "Former FTX", icon: "💀", statusRequired: 500, phaseRequired: .portfolioEngine, bonusOnMeet: -10000, careerPath: .finance, careerLevelRequired: 2, isRiskyInvestment: true, riskDescription: "AVOID - Convicted fraud"),
+    MeetingContact(id: "cz", name: "CZ (Changpeng Zhao)", title: "Binance Founder", icon: "🔶", statusRequired: 3000, phaseRequired: .portfolioEngine, bonusOnMeet: 20000, careerPath: .finance, companyBenefit: CompanyBenefit.full(employees: ["Finance": 3, "Engineering": 2], industry: "Fintech", capital: 1_000_000), careerLevelRequired: 4, isRiskyInvestment: true, riskDescription: "Regulatory risk - proceed with caution"),
+    MeetingContact(id: "vitalik", name: "Vitalik Buterin", title: "Ethereum Creator", icon: "⟠", statusRequired: 4000, phaseRequired: .legacyScale, bonusOnMeet: 40000, careerPath: .finance, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 5, "Finance": 2], industry: "Fintech", capital: 2_000_000), careerLevelRequired: 5, factionRequired: .startup, factionReputationRequired: 50),
     
     // Phase 4 - Finance Legends
-    MeetingContact(id: "carl_icahn", name: "Carl Icahn", title: "Activist Investor", icon: "🦅", statusRequired: 12000, phaseRequired: .legacyScale, bonusOnMeet: 800000, careerPath: .finance, factionRequired: .oldMoney, factionReputationRequired: 65),
-    MeetingContact(id: "bill_ackman", name: "Bill Ackman", title: "Pershing Square", icon: "🎯", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 700000, careerPath: .finance, factionRequired: .oldMoney, factionReputationRequired: 60),
-    MeetingContact(id: "cathie_wood", name: "Cathie Wood", title: "ARK Invest", icon: "🚀", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 350000, careerPath: .finance, factionRequired: .startup, factionReputationRequired: 45),
-    MeetingContact(id: "larry_fink", name: "Larry Fink", title: "BlackRock CEO", icon: "⬛", statusRequired: 15000, phaseRequired: .legacyScale, bonusOnMeet: 1000000, careerPath: .finance, factionRequired: .corporate, factionReputationRequired: 75),
+    MeetingContact(id: "carl_icahn", name: "Carl Icahn", title: "Activist Investor", icon: "🦅", statusRequired: 12000, phaseRequired: .legacyScale, bonusOnMeet: 80000, careerPath: .finance, companyBenefit: CompanyBenefit.full(employees: ["Finance": 6], capital: 5_000_000), careerLevelRequired: 6, factionRequired: .oldMoney, factionReputationRequired: 65),
+    MeetingContact(id: "bill_ackman", name: "Bill Ackman", title: "Pershing Square", icon: "🎯", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 70000, careerPath: .finance, companyBenefit: CompanyBenefit.full(employees: ["Finance": 5], capital: 4_000_000), careerLevelRequired: 6, factionRequired: .oldMoney, factionReputationRequired: 60),
+    MeetingContact(id: "cathie_wood", name: "Cathie Wood", title: "ARK Invest", icon: "🚀", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 35000, careerPath: .finance, companyBenefit: CompanyBenefit.full(employees: ["Finance": 3, "Engineering": 2], capital: 1_500_000), careerLevelRequired: 5, factionRequired: .startup, factionReputationRequired: 45),
+    MeetingContact(id: "larry_fink", name: "Larry Fink", title: "BlackRock CEO", icon: "⬛", statusRequired: 15000, phaseRequired: .legacyScale, bonusOnMeet: 100000, careerPath: .finance, companyBenefit: CompanyBenefit.full(employees: ["Finance": 10], capital: 10_000_000), careerLevelRequired: 7, factionRequired: .corporate, factionReputationRequired: 75),
     
     // ═══════════════════════════════════════════════════════════════
-    // TECH CAREER PATH - Startups, Engineers, VCs
+    // TECH CAREER PATH - Cash reduced 90%, engineering benefits
+    // Career level gates - must build tech career to meet peers
     // ═══════════════════════════════════════════════════════════════
     
     // Phase 2 - Starting in Tech
-    MeetingContact(id: "senior_eng", name: "Senior Engineer", title: "FAANG Veteran", icon: "👨‍💻", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 4000, careerPath: .tech),
-    MeetingContact(id: "pm_tech", name: "Product Manager", title: "Shipped 10M+ users", icon: "📋", statusRequired: 200, phaseRequired: .careerLeverage, bonusOnMeet: 8000, careerPath: .tech),
-    MeetingContact(id: "startup_cto", name: "Startup CTO", title: "Series A Company", icon: "🛠️", statusRequired: 350, phaseRequired: .careerLeverage, bonusOnMeet: 15000, careerPath: .tech),
+    MeetingContact(id: "senior_eng", name: "Senior Engineer", title: "FAANG Veteran", icon: "👨‍💻", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 400, careerPath: .tech, companyBenefit: CompanyBenefit.employees(["Engineering": 1]), careerLevelRequired: 1),
+    MeetingContact(id: "pm_tech", name: "Product Manager", title: "Shipped 10M+ users", icon: "📋", statusRequired: 200, phaseRequired: .careerLeverage, bonusOnMeet: 800, careerPath: .tech, companyBenefit: CompanyBenefit.employees(["Engineering": 1, "Marketing": 1]), careerLevelRequired: 2),
+    MeetingContact(id: "startup_cto", name: "Startup CTO", title: "Series A Company", icon: "🛠️", statusRequired: 350, phaseRequired: .careerLeverage, bonusOnMeet: 1500, careerPath: .tech, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 2], capital: 50_000), careerLevelRequired: 2),
     
-    // Phase 3 - Tech Mid-Career
-    MeetingContact(id: "yc_partner", name: "YC Partner", title: "Y Combinator", icon: "🟠", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 100000, careerPath: .tech, factionRequired: .startup, factionReputationRequired: 35),
-    MeetingContact(id: "a16z_partner", name: "a16z Partner", title: "Andreessen Horowitz", icon: "🅰️", statusRequired: 1200, phaseRequired: .portfolioEngine, bonusOnMeet: 180000, careerPath: .tech, factionRequired: .startup, factionReputationRequired: 45),
-    MeetingContact(id: "sequoia_partner", name: "Sequoia Partner", title: "Legendary VC", icon: "🌲", statusRequired: 1500, phaseRequired: .portfolioEngine, bonusOnMeet: 220000, careerPath: .tech, factionRequired: .startup, factionReputationRequired: 50),
+    // Phase 3 - Tech Mid-Career (VCs = capital + employees)
+    MeetingContact(id: "yc_partner", name: "YC Partner", title: "Y Combinator", icon: "🟠", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 10000, careerPath: .tech, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 3], capital: 500_000), careerLevelRequired: 3, factionRequired: .startup, factionReputationRequired: 35),
+    MeetingContact(id: "a16z_partner", name: "a16z Partner", title: "Andreessen Horowitz", icon: "🅰️", statusRequired: 1200, phaseRequired: .portfolioEngine, bonusOnMeet: 18000, careerPath: .tech, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 4, "Finance": 1], capital: 1_000_000), careerLevelRequired: 4, factionRequired: .startup, factionReputationRequired: 45),
+    MeetingContact(id: "sequoia_partner", name: "Sequoia Partner", title: "Legendary VC", icon: "🌲", statusRequired: 1500, phaseRequired: .portfolioEngine, bonusOnMeet: 22000, careerPath: .tech, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 5, "Sales": 2], capital: 2_000_000), careerLevelRequired: 4, factionRequired: .startup, factionReputationRequired: 50),
     
-    // Phase 4 - Tech Legends
-    MeetingContact(id: "pg", name: "Paul Graham", title: "YC Founder", icon: "📝", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 450000, careerPath: .tech, factionRequired: .startup, factionReputationRequired: 55),
-    MeetingContact(id: "marc_andreessen", name: "Marc Andreessen", title: "a16z Co-Founder", icon: "🥚", statusRequired: 8000, phaseRequired: .legacyScale, bonusOnMeet: 600000, careerPath: .tech, factionRequired: .startup, factionReputationRequired: 60),
-    MeetingContact(id: "peter_thiel", name: "Peter Thiel", title: "PayPal Mafia", icon: "♟️", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 750000, careerPath: .tech, factionRequired: .startup, factionReputationRequired: 65),
-    MeetingContact(id: "reid_hoffman", name: "Reid Hoffman", title: "LinkedIn Founder", icon: "🔗", statusRequired: 7000, phaseRequired: .legacyScale, bonusOnMeet: 500000, careerPath: .tech, factionRequired: .startup, factionReputationRequired: 55),
+    // Phase 4 - Tech Legends (massive engineering and capital benefits)
+    MeetingContact(id: "pg", name: "Paul Graham", title: "YC Founder", icon: "📝", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 45000, careerPath: .tech, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 6], capital: 3_000_000), careerLevelRequired: 5, factionRequired: .startup, factionReputationRequired: 55),
+    MeetingContact(id: "marc_andreessen", name: "Marc Andreessen", title: "a16z Co-Founder", icon: "🥚", statusRequired: 8000, phaseRequired: .legacyScale, bonusOnMeet: 60000, careerPath: .tech, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 8, "Finance": 2], capital: 5_000_000), careerLevelRequired: 6, factionRequired: .startup, factionReputationRequired: 60),
+    MeetingContact(id: "peter_thiel", name: "Peter Thiel", title: "PayPal Mafia", icon: "♟️", statusRequired: 10000, phaseRequired: .legacyScale, bonusOnMeet: 75000, careerPath: .tech, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 7, "Finance": 3], capital: 8_000_000), careerLevelRequired: 6, factionRequired: .startup, factionReputationRequired: 65),
+    MeetingContact(id: "reid_hoffman", name: "Reid Hoffman", title: "LinkedIn Founder", icon: "🔗", statusRequired: 7000, phaseRequired: .legacyScale, bonusOnMeet: 50000, careerPath: .tech, companyBenefit: CompanyBenefit.full(employees: ["Engineering": 5, "HR": 3], capital: 4_000_000), careerLevelRequired: 5, factionRequired: .startup, factionReputationRequired: 55),
     
     // ═══════════════════════════════════════════════════════════════
-    // TRADES CAREER PATH - Construction, Real Estate, Skilled Labor
+    // TRADES CAREER PATH - Cash reduced 90%, mixed dept benefits
+    // Career level gates - must build trades career to meet peers
     // ═══════════════════════════════════════════════════════════════
     
     // Phase 2 - Starting in Trades
-    MeetingContact(id: "foreman", name: "Site Foreman", title: "25 years experience", icon: "👷", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 3000, careerPath: .trades),
-    MeetingContact(id: "contractor", name: "General Contractor", title: "Licensed & Bonded", icon: "🏗️", statusRequired: 200, phaseRequired: .careerLeverage, bonusOnMeet: 8000, careerPath: .trades),
-    MeetingContact(id: "union_rep", name: "Union Representative", title: "Labor connections", icon: "✊", statusRequired: 350, phaseRequired: .careerLeverage, bonusOnMeet: 12000, careerPath: .trades),
+    MeetingContact(id: "foreman", name: "Site Foreman", title: "25 years experience", icon: "👷", statusRequired: 100, phaseRequired: .careerLeverage, bonusOnMeet: 300, careerPath: .trades, companyBenefit: CompanyBenefit.employees(["HR": 1]), careerLevelRequired: 1),
+    MeetingContact(id: "contractor", name: "General Contractor", title: "Licensed & Bonded", icon: "🏗️", statusRequired: 200, phaseRequired: .careerLeverage, bonusOnMeet: 800, careerPath: .trades, companyBenefit: CompanyBenefit.employees(["Engineering": 1, "Sales": 1]), careerLevelRequired: 2),
+    MeetingContact(id: "union_rep", name: "Union Representative", title: "Labor connections", icon: "✊", statusRequired: 350, phaseRequired: .careerLeverage, bonusOnMeet: 1200, careerPath: .trades, companyBenefit: CompanyBenefit.employees(["HR": 2]), careerLevelRequired: 2),
     
     // Phase 3 - Trades Mid-Career
-    MeetingContact(id: "developer", name: "Real Estate Developer", title: "Builds neighborhoods", icon: "🏘️", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 80000, careerPath: .trades),
-    MeetingContact(id: "fleet_owner", name: "Fleet Owner", title: "50+ trucks", icon: "🚛", statusRequired: 600, phaseRequired: .portfolioEngine, bonusOnMeet: 50000, careerPath: .trades),
-    MeetingContact(id: "franchise_owner", name: "Franchise Owner", title: "Multi-unit operator", icon: "🍔", statusRequired: 1000, phaseRequired: .portfolioEngine, bonusOnMeet: 100000, careerPath: .trades),
+    MeetingContact(id: "developer", name: "Real Estate Developer", title: "Builds neighborhoods", icon: "🏘️", statusRequired: 800, phaseRequired: .portfolioEngine, bonusOnMeet: 8000, careerPath: .trades, companyBenefit: CompanyBenefit.full(employees: ["Finance": 2, "Sales": 2], capital: 300_000), careerLevelRequired: 3),
+    MeetingContact(id: "fleet_owner", name: "Fleet Owner", title: "50+ trucks", icon: "🚛", statusRequired: 600, phaseRequired: .portfolioEngine, bonusOnMeet: 5000, careerPath: .trades, companyBenefit: CompanyBenefit.full(employees: ["Sales": 3], capital: 150_000), careerLevelRequired: 3),
+    MeetingContact(id: "franchise_owner", name: "Franchise Owner", title: "Multi-unit operator", icon: "🍔", statusRequired: 1000, phaseRequired: .portfolioEngine, bonusOnMeet: 10000, careerPath: .trades, companyBenefit: CompanyBenefit.full(employees: ["HR": 2, "Sales": 3], capital: 400_000), careerLevelRequired: 4),
     
     // Phase 4 - Trades Moguls
-    MeetingContact(id: "barbara_corcoran", name: "Barbara Corcoran", title: "Real Estate Shark", icon: "🦈", statusRequired: 5000, phaseRequired: .legacyScale, bonusOnMeet: 350000, careerPath: .trades, factionRequired: .oldMoney, factionReputationRequired: 45),
-    MeetingContact(id: "marcus_lemonis", name: "Marcus Lemonis", title: "The Profit", icon: "💼", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 400000, careerPath: .trades, factionRequired: .corporate, factionReputationRequired: 50),
-    MeetingContact(id: "grant_cardone", name: "Grant Cardone", title: "Real Estate Empire", icon: "🏢", statusRequired: 4000, phaseRequired: .portfolioEngine, bonusOnMeet: 250000, careerPath: .trades, isRiskyInvestment: true, riskDescription: "Aggressive tactics - polarizing")
+    MeetingContact(id: "barbara_corcoran", name: "Barbara Corcoran", title: "Real Estate Shark", icon: "🦈", statusRequired: 5000, phaseRequired: .legacyScale, bonusOnMeet: 35000, careerPath: .trades, companyBenefit: CompanyBenefit.full(employees: ["Finance": 3, "Sales": 4], capital: 2_000_000), careerLevelRequired: 5, factionRequired: .oldMoney, factionReputationRequired: 45),
+    MeetingContact(id: "marcus_lemonis", name: "Marcus Lemonis", title: "The Profit", icon: "💼", statusRequired: 6000, phaseRequired: .legacyScale, bonusOnMeet: 40000, careerPath: .trades, companyBenefit: CompanyBenefit.full(employees: ["HR": 3, "Finance": 3], capital: 3_000_000), careerLevelRequired: 5, factionRequired: .corporate, factionReputationRequired: 50),
+    MeetingContact(id: "grant_cardone", name: "Grant Cardone", title: "Real Estate Empire", icon: "🏢", statusRequired: 4000, phaseRequired: .portfolioEngine, bonusOnMeet: 25000, careerPath: .trades, companyBenefit: CompanyBenefit.full(employees: ["Sales": 5], capital: 1_000_000), careerLevelRequired: 4, isRiskyInvestment: true, riskDescription: "Aggressive tactics - polarizing")
 ]
 
 // MARK: - Auto-Tapper System
@@ -1164,6 +1267,21 @@ struct AutoTapper: Identifiable, Codable {
     
     var nextLevelTapsPerSecond: Double {
         baseTapsPerSecond * Double(2 + level)
+    }
+    
+    /// BALANCED: Flat income per tap instead of using tap value multipliers
+    /// This prevents auto-tappers from generating billions/second at late game
+    var baseIncomePerTap: Double {
+        switch id {
+        case "buddy": return 1.0           // $1 per tap
+        case "intern": return 5.0          // $5 per tap
+        case "va": return 25.0             // $25 per tap
+        case "ai_bot": return 100.0        // $100 per tap
+        case "tap_army": return 500.0      // $500 per tap
+        case "tap_factory": return 2_500.0 // $2,500 per tap
+        case "quantum_tapper": return 10_000.0 // $10,000 per tap
+        default: return 1.0
+        }
     }
 }
 

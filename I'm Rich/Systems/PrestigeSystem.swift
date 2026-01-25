@@ -86,10 +86,14 @@ class PrestigeManager: ObservableObject {
         )
     }
     
+    /// BALANCED: Sqrt-based prestige multiplier growth - much slower than linear
+    /// Old: +10% per billion (linear) = 100B earnings → +10x multiplier
+    /// New: +5% per sqrt(billions) = 100B earnings → +0.50 multiplier (50%)
     private func calculateMultiplierGain(earnings: Double) -> Double {
-        // +10% per billion earned, minimum +5%
         let billionsEarned = earnings / 1_000_000_000
-        return max(0.05, billionsEarned * 0.10)
+        // Sqrt-based growth: much slower scaling
+        // 1B → +5%, 10B → +15.8%, 100B → +50%, 1T → +158%
+        return max(0.03, sqrt(billionsEarned) * 0.05)
     }
     
     private func calculateStartingCash(earnings: Double) -> Double {

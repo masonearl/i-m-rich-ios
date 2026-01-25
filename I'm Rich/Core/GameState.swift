@@ -95,6 +95,16 @@ class GameState: ObservableObject {
     let familyManager = FamilyManager.shared
     let reflectionManager = LifeReflectionManager.shared
     
+    // MARK: - Strategic Systems Managers
+    let economicCycleManager = EconomicCycleManager.shared
+    let researchManager = ResearchManager.shared
+    let strategicEventManager = StrategicEventManager.shared
+    let competitorManager = CompetitorManager.shared
+    let synergyManager = SynergyManager.shared
+    
+    // MARK: - Game Center
+    let gameCenterManager = GameCenterManager.shared
+    
     // MARK: - Work Time Tracking
     @Published var workTimeMinutes: Double = 0
     @Published var leisureTimeMinutes: Double = 0
@@ -212,15 +222,28 @@ class GameState: ObservableObject {
         // Apply prestige multiplier
         income *= prestigeManager.legacyMultiplier
         
+        // Apply research passive income multiplier
+        income *= researchManager.totalPassiveMultiplier
+        
+        // Apply economic cycle revenue modifier
+        income *= economicCycleManager.state.currentPhase.revenueMultiplier
+        
+        // Apply synergy bonus
+        income *= synergyManager.getMultiplier(for: .passiveIncome)
+        
         return income
     }
     
+    /// BALANCED: Auto-tappers now use flat income per tier instead of multiplying by tapValue
+    /// This prevents them from generating billions/second at late game
     var autoTapperIncomePerSecond: Double {
-        var tapsPerSecond: Double = 0
+        var income: Double = 0
         for tapper in autoTappers where tapper.owned {
-            tapsPerSecond += tapper.currentTapsPerSecond
+            // Use flat income based on tapper tier, NOT tap value multipliers
+            income += tapper.currentTapsPerSecond * tapper.baseIncomePerTap
         }
-        return tapsPerSecond * baseTapValue * tapMultiplier
+        // Only apply prestige multiplier, not all the tap multipliers
+        return income * prestigeManager.legacyMultiplier
     }
     
     var totalAutoTapsPerSecond: Double {
@@ -283,65 +306,72 @@ class GameState: ObservableObject {
         investments.reduce(0) { $0 + $1.unrealizedGains }
     }
     
+    /// BALANCED: Upgrade tap multiplier capped at 3x to prevent runaway income
     var tapMultiplier: Double {
         var multiplier = 1.0
         
-        // Career multiplier
+        // Career multiplier (unchanged - ranges from 1.1x to 1.5x)
         if let career = selectedCareer {
             multiplier *= career.incomeMultiplier
         }
         
-        // Upgrade multipliers
+        // Upgrade multipliers - CAPPED at 3.0x total
+        var upgradeBonus = 0.0
         for upgrade in upgrades where upgrade.purchased {
             if case .tapMultiplier(let bonus) = upgrade.effect {
-                multiplier += bonus
+                upgradeBonus += bonus
             }
         }
+        multiplier *= min(1 + upgradeBonus, 3.0)  // Cap at 3x from upgrades
         
-        // Streak multiplier
+        // Streak multiplier (already capped at 3x in new system)
         multiplier *= streakMultiplier
         
         return multiplier
     }
     
+    /// BALANCED: Streak multiplier capped at 3x (was 20x) to prevent runaway income
     var streakMultiplier: Double {
         switch currentStreak {
-        case 0..<100: return 1.0
-        case 100..<300: return 2.0
-        case 300..<500: return 3.0
-        case 500..<1000: return 4.0
-        case 1000..<2000: return 5.0
-        case 2000..<4000: return 7.0
-        case 4000..<7000: return 10.0
-        case 7000..<10000: return 15.0
-        default: return 20.0
+        case 0..<50: return 1.0
+        case 50..<150: return 1.25
+        case 150..<300: return 1.5
+        case 300..<500: return 2.0
+        case 500..<1000: return 2.5
+        default: return 3.0  // Max 3x, not 20x
         }
     }
     
+    /// Tap value scales with progress - each tap represents a "deal" or "sale"
+    /// Starting at $1-5 feels meaningful, scaling to $1000+ for big deals
     var baseTapValue: Double {
-        // SLOWER scaling - each tap represents a small sale or task
-        // Game should take ~5 hours to reach trillionaire
-        // Early game: Selling items, freelance gigs ($0.50-2)
-        // Mid game: Contracts, consulting ($5-20)
-        // Late game: Deals, partnerships ($50-150)
-        // Billionaire: Major deals ($250-500)
         switch totalEarned {
-        case 0..<5_000: return 0.5               // Just starting - selling items
-        case 5_000..<25_000: return 1            // Early side hustles
-        case 25_000..<100_000: return 2          // Building momentum
-        case 100_000..<500_000: return 5         // Small business
-        case 500_000..<1_000_000: return 10      // Growing business
-        case 1_000_000..<10_000_000: return 20   // Established company
-        case 10_000_000..<100_000_000: return 50      // Successful enterprise
-        case 100_000_000..<1_000_000_000: return 100  // Major corporation
-        case 1_000_000_000..<10_000_000_000: return 200  // Billionaire deals
-        case 10_000_000_000..<100_000_000_000: return 350  // Multi-billionaire
-        default: return 500  // Ultra-wealthy
+        case 0..<1_000: return 1.0                      // Selling small items ($1-5 with multipliers)
+        case 1_000..<10_000: return 2.0                 // Garage sales, small gigs
+        case 10_000..<100_000: return 5.0               // Side hustle deals
+        case 100_000..<1_000_000: return 15.0           // Freelance projects
+        case 1_000_000..<10_000_000: return 50.0        // Business contracts
+        case 10_000_000..<100_000_000: return 150.0     // Major deals
+        case 100_000_000..<1_000_000_000: return 500.0  // Corporate contracts
+        case 1_000_000_000..<10_000_000_000: return 2_000.0   // Multi-million deals
+        case 10_000_000_000..<100_000_000_000: return 10_000.0  // Massive transactions
+        default: return 50_000.0  // Billionaire-scale deals
         }
     }
     
     var tapValue: Double {
-        baseTapValue * tapMultiplier * prestigeManager.legacyMultiplier
+        var value = baseTapValue * tapMultiplier * prestigeManager.legacyMultiplier
+        
+        // Apply research bonus
+        value *= researchManager.totalTapMultiplier
+        
+        // Apply economic cycle revenue modifier
+        value *= economicCycleManager.state.currentPhase.revenueMultiplier
+        
+        // Apply synergy bonus
+        value *= synergyManager.getMultiplier(for: .tapValue)
+        
+        return value
     }
     
     var investmentBonusMultiplier: Double {
@@ -361,6 +391,16 @@ class GameState: ObservableObject {
                 bonus += amount
             }
         }
+        
+        // Add research bonus
+        bonus += researchManager.totalOpportunityBonus
+        
+        // Add synergy bonus (convert multiplier to additive)
+        let synergyMultiplier = synergyManager.getMultiplier(for: .opportunitySuccess)
+        if synergyMultiplier > 1.0 {
+            bonus += (synergyMultiplier - 1.0)
+        }
+        
         return bonus
     }
     
@@ -369,19 +409,13 @@ class GameState: ObservableObject {
     // This ensures rewards remain meaningful at all wealth levels
     
     /// Get the reward scaling multiplier based on current net worth
+    /// BALANCED: Uses logarithmic scaling instead of exponential to prevent runaway growth
     var rewardScaleMultiplier: Double {
-        let worth = netWorth
-        switch worth {
-        case 0..<10_000: return 1.0                      // Base level
-        case 10_000..<100_000: return 10.0               // $10K-$100K = 10x rewards
-        case 100_000..<1_000_000: return 100.0           // $100K-$1M = 100x rewards
-        case 1_000_000..<10_000_000: return 1_000.0      // $1M-$10M = 1,000x rewards
-        case 10_000_000..<100_000_000: return 10_000.0   // $10M-$100M = 10,000x rewards
-        case 100_000_000..<1_000_000_000: return 100_000.0    // $100M-$1B = 100,000x rewards
-        case 1_000_000_000..<100_000_000_000: return 1_000_000.0    // $1B-$100B = 1M x rewards
-        case 100_000_000_000..<1_000_000_000_000: return 10_000_000.0  // $100B-$1T = 10Mx
-        default: return 100_000_000.0  // Trillionaire = 100M x rewards
-        }
+        // Logarithmic growth: log10(netWorth) - 2, squared, capped at 1000x
+        // This gives much slower scaling than the previous exponential approach
+        // At $100 = 0x (min 1), $10K = 1x, $1M = 4x, $100M = 16x, $10B = 49x, $1T = 81x, max = 1000x
+        let logScale = max(1.0, log10(max(100, netWorth)) - 2)
+        return min(logScale * logScale, 1000.0)
     }
     
     /// Scale a base reward amount to be meaningful at current wealth level
@@ -402,6 +436,17 @@ class GameState: ObservableObject {
         let scaled = scaleReward(baseReward)
         let percentBased = meaningfulReward(percentage: 0.005)  // 0.5% of net worth
         return max(scaled, percentBased)
+    }
+    
+    /// BALANCED: Phase-based income cap per tick (0.1 seconds)
+    /// Early phases have strict caps, late game allows more but still bounded
+    var maxIncomePerTick: Double {
+        switch currentPhase {
+        case .hustle: return 100               // Max $1K/sec = $86K/day
+        case .careerLeverage: return 1_000     // Max $10K/sec = $864K/day
+        case .portfolioEngine: return 10_000   // Max $100K/sec = $8.6M/day
+        case .legacyScale: return 100_000      // Max $1M/sec = $86M/day
+        }
     }
     
     var nextPhase: GamePhase? {
@@ -430,6 +475,13 @@ class GameState: ObservableObject {
                   statusPoints >= contact.statusRequired,
                   !contact.hasMet else {
                 return false
+            }
+            
+            // Career level requirement - must have reached a certain role level
+            if contact.careerLevelRequired > 0 {
+                guard currentRoleIndex >= contact.careerLevelRequired else {
+                    return false  // Player hasn't reached required career level
+                }
             }
             
             // Career path filtering - nil means available to all careers
@@ -584,8 +636,8 @@ class GameState: ObservableObject {
         
         let totalIncome = salaryIncome + hustleIncome + passiveUpgradeIncome + productIncome
         
-        // Cap income per tick to prevent runaway values
-        let cappedIncome = min(totalIncome, 1_000_000) // Max $1M per tick
+        // BALANCED: Phase-based income cap per tick (0.1 seconds) to prevent runaway values
+        let cappedIncome = min(totalIncome, maxIncomePerTick)
         
         if cappedIncome > 0 && cash < GameState.maxNetWorth {
             cash += cappedIncome
@@ -621,6 +673,11 @@ class GameState: ObservableObject {
         // Check achievements
         achievementManager.checkAchievements(game: self)
         
+        // Check Game Center achievements (less frequently to avoid spam)
+        if totalTaps % 100 == 0 {
+            GameCenterManager.shared.checkAchievements(game: self)
+        }
+        
         // Decay streak if no recent taps
         if Date().timeIntervalSince(lastTapTime) > streakTimeLimit && currentStreak > 0 {
             currentStreak = 0
@@ -647,25 +704,56 @@ class GameState: ObservableObject {
     
     func accumulateInvestmentGains(deltaTime: TimeInterval) {
         // Investment gains accumulate based on game time (5 min = 1 year)
-        // So each tick, we accumulate proportional gains
-        // Company-specific news events affect individual investments dynamically
+        // Volatility creates realistic ups and downs - investments can LOSE money!
         let yearFraction = deltaTime / LifeCycleConstants.secondsPerGameYear
         
         // Sanity check: if net worth exceeds cap, don't accumulate more gains
         guard netWorth < GameState.maxNetWorth else { return }
         
         for i in 0..<investments.count where investments[i].amountInvested > 0 {
-            let annualReturn = investments[i].amountInvested * investments[i].baseReturn
+            // Get the investment's sentiment (affects returns)
+            let sentiment = InvestmentSentimentManager.shared.getSentiment(for: investments[i].id)
+            let sentimentMultiplier = sentiment.returnMultiplier
+            
+            // Base annual return with sentiment
+            let baseAnnualReturn = investments[i].baseReturn * sentimentMultiplier
+            
+            // Apply volatility - creates realistic fluctuation
+            // Volatility of 0.5 means returns can vary by ±50% from base
+            let volatility = investments[i].volatility
+            let randomVariance = Double.random(in: -volatility...volatility)
+            let volatileReturn = baseAnnualReturn + randomVariance
+            
+            // Calculate raw return (can be negative!)
+            let annualReturn = investments[i].amountInvested * volatileReturn
+            
+            // Apply multipliers
             let marketMultiplier = marketEventManager.getMultiplier(for: investments[i].id)
             let networkingMultiplier = getNetworkingInvestmentModifier(for: investments[i].id)
             let bonusMultiplier = 1.0 + investmentBonusMultiplier
             let prestigeMultiplier = prestigeManager.legacyMultiplier
             
-            let gains = annualReturn * yearFraction * marketMultiplier * networkingMultiplier * bonusMultiplier * prestigeMultiplier
+            // Strategic system multipliers
+            let economicMultiplier = economicCycleManager.state.currentPhase.investmentMultiplier
+            let researchBonus = 1.0 + researchManager.totalInvestmentBonus
+            let synergyBonus = synergyManager.getMultiplier(for: .investmentReturns)
+            
+            var gains = annualReturn * yearFraction * marketMultiplier * networkingMultiplier * bonusMultiplier * prestigeMultiplier * economicMultiplier * researchBonus * synergyBonus
+            
+            // During contractions, volatility hurts more
+            if economicCycleManager.state.currentPhase == .contraction || economicCycleManager.state.currentPhase == .trough {
+                if gains < 0 {
+                    gains *= 1.5 // Losses are 50% worse in bad economy
+                }
+            }
             
             // Cap individual investment to prevent overflow
-            if investments[i].totalValue + gains < GameState.maxNetWorth {
+            let newValue = investments[i].totalValue + gains
+            if newValue > 0 && newValue < GameState.maxNetWorth {
                 investments[i].unrealizedGains += gains
+            } else if newValue <= 0 {
+                // Wipe out the investment (total loss)
+                investments[i].unrealizedGains = -investments[i].amountInvested * 0.99 // Lose 99%
             }
         }
     }
@@ -756,6 +844,46 @@ class GameState: ObservableObject {
         for _ in 0..<10 {
             CreditManager.shared.ageAccountByMonth()
         }
+        
+        // ═══════════════════════════════════════════════════════════
+        
+        // ═══════════════════════════════════════════════════════════
+        // DEPARTMENT CONSEQUENCES - HR Decay Check
+        // ═══════════════════════════════════════════════════════════
+        
+        let hrDecay = CompanyManager.shared.applyHRDecay()
+        if hrDecay > 0 {
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "⚠️ No HR department! Company culture suffering. Valuation down 15% (-\(formatCompact(hrDecay)))"
+            )
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // STRATEGIC SYSTEMS - Year-End Processing
+        // ═══════════════════════════════════════════════════════════
+        
+        // Process economic cycle
+        let cycleChanged = economicCycleManager.processYear()
+        if cycleChanged {
+            FeedbackCoordinator.shared.opportunityAppear()
+        }
+        
+        // Process research progress
+        researchManager.processYear()
+        
+        // Process competitors
+        competitorManager.processYear(playerNetWorth: netWorth)
+        
+        // Check for strategic events
+        strategicEventManager.checkForEvent(
+            netWorth: netWorth,
+            phase: currentPhase.rawValue,
+            currentYear: lifecycleManager.gameYearsPassed
+        )
+        
+        // Check synergies
+        synergyManager.checkSynergies(game: self)
         
         // ═══════════════════════════════════════════════════════════
         
@@ -1220,6 +1348,51 @@ class GameState: ObservableObject {
             }
         }
         
+        // ═══════════════════════════════════════════════════════════
+        // COMPANY BENEFITS - Apply employee grants, industry unlocks, etc.
+        // ═══════════════════════════════════════════════════════════
+        
+        if let benefit = contact.companyBenefit {
+            // Add employees to departments
+            for (deptRaw, count) in benefit.employeeGrant {
+                if let dept = Department(rawValue: deptRaw) {
+                    CompanyManager.shared.addEmployees(department: dept, count: count)
+                    NewsFeedManager.shared.addNews(
+                        category: .personal,
+                        headline: "🤝 \(contact.name) connected you with \(count) \(dept.rawValue) employees!"
+                    )
+                }
+            }
+            
+            // Unlock industry
+            if let industryRaw = benefit.industryUnlock,
+               let industry = Industry(rawValue: industryRaw) {
+                CompanyManager.shared.enterIndustry(industry)
+                NewsFeedManager.shared.addNews(
+                    category: .personal,
+                    headline: "🏭 \(contact.name) helped you enter the \(industry.rawValue) industry!"
+                )
+            }
+            
+            // Add capital
+            if benefit.capitalRaised > 0 {
+                CompanyManager.shared.state.totalCapitalRaised += benefit.capitalRaised
+                NewsFeedManager.shared.addNews(
+                    category: .personal,
+                    headline: "💰 \(contact.name) helped raise \(formatCompact(benefit.capitalRaised)) in capital!"
+                )
+            }
+            
+            // Trade deal value
+            if benefit.tradeDealValue > 0 {
+                CompanyManager.shared.completeTradeDeal(value: benefit.tradeDealValue)
+                NewsFeedManager.shared.addNews(
+                    category: .personal,
+                    headline: "📈 \(contact.name) brokered a \(formatCompact(benefit.tradeDealValue)) trade deal!"
+                )
+            }
+        }
+        
         // Build result message
         var message = "Met \(contact.name)! +\(formatCompact(baseBonus))"
         if allianceMultiplier > 1.0 {
@@ -1459,7 +1632,13 @@ class GameState: ObservableObject {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencySymbol = "$"
-        formatter.maximumFractionDigits = 0
+        // Show cents for small values, hide for large values
+        if abs(value) < 100 {
+            formatter.minimumFractionDigits = 2
+            formatter.maximumFractionDigits = 2
+        } else {
+            formatter.maximumFractionDigits = 0
+        }
         return formatter.string(from: NSNumber(value: value)) ?? "$0"
     }
     
@@ -1473,8 +1652,11 @@ class GameState: ObservableObject {
             return String(format: "$%.1fM", value / 1_000_000)
         case 1_000...:
             return String(format: "$%.1fK", value / 1_000)
+        case 100...:
+            return String(format: "$%.0f", value)
         default:
-            return formatCurrency(value)
+            // Show cents for small values
+            return String(format: "$%.2f", value)
         }
     }
     
@@ -1533,6 +1715,14 @@ class GameState: ObservableObject {
         MarketEventManager.shared.reset()
         AchievementManager.shared.reset()
         NewsFeedManager.shared.reset()
+        InvestmentSentimentManager.shared.reset()
+        
+        // Reset strategic systems
+        EconomicCycleManager.shared.reset()
+        ResearchManager.shared.reset()
+        StrategicEventManager.shared.reset()
+        CompetitorManager.shared.reset()
+        SynergyManager.shared.reset()
         
         // Reset THIS GameState instance to fresh values
         cash = 0
@@ -1632,6 +1822,13 @@ class GameState: ObservableObject {
         familyManager.reset()
         reflectionManager.reset()
         CompanyManager.shared.reset()
+        
+        // Reset strategic systems for new life
+        EconomicCycleManager.shared.reset()
+        ResearchManager.shared.reset()
+        StrategicEventManager.shared.reset()
+        CompetitorManager.shared.reset()
+        SynergyManager.shared.reset()
         
         // Restore preserved unlocks
         prestigeManager.restoreUnlocks(

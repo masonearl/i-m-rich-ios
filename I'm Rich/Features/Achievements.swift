@@ -135,23 +135,23 @@ let allAchievements: [Achievement] = [
     // CAREER
     Achievement(id: "first_career", name: "Career Starter", description: "Choose your first career path", icon: "🎯", category: .career, reward: .cash(1000), isSecret: false),
     Achievement(id: "first_promotion", name: "Moving Up", description: "Get your first promotion", icon: "📈", category: .career, reward: .statusPoints(25), isSecret: false),
-    Achievement(id: "mid_career", name: "Established", description: "Reach role level 4 in any career", icon: "💼", category: .career, reward: .cash(50000), isSecret: false),
+    Achievement(id: "mid_career", name: "Established", description: "Reach role level 4 in any career", icon: "💼", category: .career, reward: .statusPoints(75), isSecret: false),
     Achievement(id: "max_role", name: "Top of the Game", description: "Reach the highest role in a career", icon: "🏆", category: .career, reward: .statusPoints(500), isSecret: false),
-    Achievement(id: "career_switcher", name: "Career Explorer", description: "Try all 4 career paths", icon: "🔄", category: .career, reward: .cash(100000), isSecret: true),
+    Achievement(id: "career_switcher", name: "Career Explorer", description: "Try all 4 career paths", icon: "🔄", category: .career, reward: .statusPoints(200), isSecret: true),
     
     // INVESTOR
     Achievement(id: "first_investment", name: "Baby's First Investment", description: "Make your first investment", icon: "🌱", category: .investor, reward: .cash(500), isSecret: false),
     Achievement(id: "diversified", name: "Diversified", description: "Invest in 5 different assets", icon: "🎨", category: .investor, reward: .statusPoints(50), isSecret: false),
-    Achievement(id: "fully_diversified", name: "Portfolio Master", description: "Invest in 10 different assets", icon: "🎯", category: .investor, reward: .cash(500000), isSecret: false),
+    Achievement(id: "fully_diversified", name: "Portfolio Master", description: "Invest in 10 different assets", icon: "🎯", category: .investor, reward: .statusPoints(100), isSecret: false),
     Achievement(id: "big_investor", name: "Whale", description: "Have $10,000,000+ invested", icon: "🐋", category: .investor, reward: .statusPoints(200), isSecret: false),
-    Achievement(id: "product_success", name: "Entrepreneur", description: "Launch a successful product", icon: "🚀", category: .investor, reward: .cash(250000), isSecret: false),
+    Achievement(id: "product_success", name: "Entrepreneur", description: "Launch a successful product", icon: "🚀", category: .investor, reward: .statusPoints(75), isSecret: false),
     Achievement(id: "product_master", name: "Serial Entrepreneur", description: "Launch 3 successful products", icon: "💡", category: .investor, reward: .statusPoints(300), isSecret: false),
     
     // STREAK (Consecutive Taps)
     Achievement(id: "streak_100", name: "Warming Up", description: "Reach a 100 tap streak", icon: "🔥", category: .streak, reward: .cash(1000), isSecret: false),
     Achievement(id: "streak_500", name: "On Fire", description: "Reach a 500 tap streak", icon: "🔥", category: .streak, reward: .cash(5000), isSecret: false),
     Achievement(id: "streak_1000", name: "Unstoppable", description: "Reach a 1,000 tap streak", icon: "💥", category: .streak, reward: .statusPoints(100), isSecret: false),
-    Achievement(id: "streak_5000", name: "Legendary", description: "Reach a 5,000 tap streak", icon: "⚡", category: .streak, reward: .cash(100000), isSecret: false),
+    Achievement(id: "streak_5000", name: "Legendary", description: "Reach a 5,000 tap streak", icon: "⚡", category: .streak, reward: .statusPoints(150), isSecret: false),
     Achievement(id: "streak_10000", name: "Mythical", description: "Reach a 10,000 tap streak", icon: "🌟", category: .streak, reward: .statusPoints(500), isSecret: true),
     
     // HUSTLE (Total Taps - CEO Identity)
@@ -161,39 +161,39 @@ let allAchievements: [Achievement] = [
     Achievement(id: "hustle_5000", name: "The Grinder", description: "5,000 total taps - Outworking everyone", icon: "🏃", category: .streak, reward: .statusPoints(50), isSecret: false),
     Achievement(id: "hustle_10000", name: "Obsessed", description: "10,000 total taps - Sleep is optional", icon: "😤", category: .streak, reward: .cash(25000), isSecret: false),
     Achievement(id: "hustle_25000", name: "Built Different", description: "25,000 total taps - They don't understand", icon: "😤", category: .streak, reward: .statusPoints(100), isSecret: false),
-    Achievement(id: "hustle_50000", name: "CEO Mentality", description: "50,000 total taps - Whatever it takes", icon: "👔", category: .streak, reward: .cash(100000), isSecret: false),
-    Achievement(id: "tap_master", name: "Legendary Hustle", description: "100,000 total taps - The grind never stops", icon: "👑", category: .streak, reward: .cash(250000), isSecret: false),
+    Achievement(id: "hustle_50000", name: "CEO Mentality", description: "50,000 total taps - Whatever it takes", icon: "👔", category: .streak, reward: .statusPoints(200), isSecret: false),
+    Achievement(id: "tap_master", name: "Legendary Hustle", description: "100,000 total taps - The grind never stops", icon: "👑", category: .streak, reward: .statusPoints(500), isSecret: false),
     Achievement(id: "hustle_500k", name: "Empire Builder", description: "500,000 total taps - Built from nothing", icon: "🏰", category: .streak, reward: .statusPoints(500), isSecret: false),
     Achievement(id: "tap_legend", name: "Mogul Status", description: "1,000,000 total taps - The stuff of legends", icon: "🏆", category: .streak, reward: .themeUnlock("Mogul Gold"), isSecret: true),
     
     // SOCIAL
     Achievement(id: "first_contact", name: "Networker", description: "Meet your first contact", icon: "🤝", category: .social, reward: .cash(2500), isSecret: false),
     Achievement(id: "contacts_5", name: "Well Connected", description: "Meet 5 contacts", icon: "📱", category: .social, reward: .statusPoints(50), isSecret: false),
-    Achievement(id: "contacts_10", name: "Power Networker", description: "Meet 10 contacts", icon: "🌐", category: .social, reward: .cash(100000), isSecret: false),
+    Achievement(id: "contacts_10", name: "Power Networker", description: "Meet 10 contacts", icon: "🌐", category: .social, reward: .statusPoints(100), isSecret: false),
     Achievement(id: "met_tim_cook", name: "Apple Insider", description: "Meet Tim Cook", icon: "🍎", category: .social, reward: .statusPoints(500), isSecret: false),
     Achievement(id: "met_satya", name: "Azure Alliance", description: "Meet Satya Nadella", icon: "🪟", category: .social, reward: .statusPoints(500), isSecret: false),
     Achievement(id: "met_sundar", name: "Search Giant", description: "Meet Sundar Pichai", icon: "🔍", category: .social, reward: .statusPoints(500), isSecret: false),
-    Achievement(id: "met_sam_altman", name: "AI Pioneer", description: "Meet Sam Altman", icon: "🤖", category: .social, reward: .cash(25_000_000), isSecret: false),
-    Achievement(id: "met_demis", name: "Mind Merger", description: "Meet Demis Hassabis", icon: "🧠", category: .social, reward: .cash(25_000_000), isSecret: false),
-    Achievement(id: "met_jensen", name: "GPU Baron", description: "Meet Jensen Huang", icon: "🎮", category: .social, reward: .cash(30_000_000), isSecret: false),
-    Achievement(id: "met_elon", name: "To Mars!", description: "Meet Elon Musk", icon: "🚀", category: .social, reward: .cash(50_000_000), isSecret: false),
+    Achievement(id: "met_sam_altman", name: "AI Pioneer", description: "Meet Sam Altman", icon: "🤖", category: .social, reward: .statusPoints(500), isSecret: false),
+    Achievement(id: "met_demis", name: "Mind Merger", description: "Meet Demis Hassabis", icon: "🧠", category: .social, reward: .statusPoints(500), isSecret: false),
+    Achievement(id: "met_jensen", name: "GPU Baron", description: "Meet Jensen Huang", icon: "🎮", category: .social, reward: .statusPoints(600), isSecret: false),
+    Achievement(id: "met_elon", name: "To Mars!", description: "Meet Elon Musk", icon: "🚀", category: .social, reward: .statusPoints(1000), isSecret: false),
     Achievement(id: "met_warren", name: "Oracle's Wisdom", description: "Meet Warren Buffett", icon: "📈", category: .social, reward: .statusPoints(1000), isSecret: false),
-    Achievement(id: "met_jamie", name: "Banking Titan", description: "Meet Jamie Dimon", icon: "🏦", category: .social, reward: .cash(25_000_000), isSecret: false),
+    Achievement(id: "met_jamie", name: "Banking Titan", description: "Meet Jamie Dimon", icon: "🏦", category: .social, reward: .statusPoints(500), isSecret: false),
     Achievement(id: "met_ray", name: "Principles", description: "Meet Ray Dalio", icon: "🌊", category: .social, reward: .statusPoints(750), isSecret: false),
-    Achievement(id: "met_mrbeast", name: "Content King", description: "Meet MrBeast", icon: "📱", category: .social, reward: .cash(15_000_000), isSecret: false),
+    Achievement(id: "met_mrbeast", name: "Content King", description: "Meet MrBeast", icon: "📱", category: .social, reward: .statusPoints(400), isSecret: false),
     Achievement(id: "met_president", name: "World Leader", description: "Meet the President", icon: "🏛️", category: .social, reward: .statusPoints(2000), isSecret: false),
     
     // Partnership Achievements
-    Achievement(id: "first_partnership", name: "Strategic Partner", description: "Form your first major partnership", icon: "🤝", category: .social, reward: .cash(10_000_000), isSecret: false),
+    Achievement(id: "first_partnership", name: "Strategic Partner", description: "Form your first major partnership", icon: "🤝", category: .social, reward: .statusPoints(300), isSecret: false),
     Achievement(id: "ai_alliance", name: "AI Alliance", description: "Partner with an AI company", icon: "🤖", category: .social, reward: .statusPoints(500), isSecret: false),
-    Achievement(id: "triple_partnership", name: "Power Broker", description: "Have 3 active partnerships", icon: "⚡", category: .social, reward: .cash(100_000_000), isSecret: true),
+    Achievement(id: "triple_partnership", name: "Power Broker", description: "Have 3 active partnerships", icon: "⚡", category: .social, reward: .statusPoints(1000), isSecret: true),
     
     // WISDOM
     Achievement(id: "first_lesson", name: "Student", description: "Complete your first lesson", icon: "📖", category: .wisdom, reward: .cash(1000), isSecret: false),
     Achievement(id: "lessons_5", name: "Learner", description: "Complete 5 lessons", icon: "📚", category: .wisdom, reward: .statusPoints(50), isSecret: false),
-    Achievement(id: "lessons_all", name: "Scholar", description: "Complete all lessons", icon: "🎓", category: .wisdom, reward: .cash(500000), isSecret: false),
+    Achievement(id: "lessons_all", name: "Scholar", description: "Complete all lessons", icon: "🎓", category: .wisdom, reward: .statusPoints(300), isSecret: false),
     Achievement(id: "quiz_perfect", name: "Perfect Score", description: "Get 100% on a quiz", icon: "💯", category: .wisdom, reward: .statusPoints(25), isSecret: false),
-    Achievement(id: "quiz_master", name: "Quiz Master", description: "Score 100% on 5 quizzes", icon: "🧠", category: .wisdom, reward: .cash(100000), isSecret: false),
+    Achievement(id: "quiz_master", name: "Quiz Master", description: "Score 100% on 5 quizzes", icon: "🧠", category: .wisdom, reward: .statusPoints(100), isSecret: false),
     Achievement(id: "financial_literacy", name: "Financially Literate", description: "Reach 100 Financial Literacy score", icon: "🏆", category: .wisdom, reward: .statusPoints(200), isSecret: false)
 ]
 

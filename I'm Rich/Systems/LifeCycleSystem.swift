@@ -2,7 +2,7 @@
 //  LifeCycleSystem.swift
 //  I'm Rich
 //
-//  Time compression (5 min = 1 year) and age tracking
+//  Time compression (1 min = 1 year) and age tracking
 //
 
 import SwiftUI
@@ -10,7 +10,7 @@ import Combine
 
 // MARK: - Life Cycle Constants
 struct LifeCycleConstants {
-    static let secondsPerGameYear: TimeInterval = 300 // 5 minutes = 1 year
+    static let secondsPerGameYear: TimeInterval = 60 // 1 minute = 1 year
     static let minStartingAge = 1
     static let maxStartingAge = 100
     static let retirementEligibleAge = 50

@@ -681,6 +681,11 @@ struct ZonedGameView: View {
             // Company status
             companySection
             
+            // Department Hiring (only show if company founded)
+            if CompanyManager.shared.state.founded {
+                departmentHiringSection
+            }
+            
             // Products
             productsSection
             
@@ -688,6 +693,89 @@ struct ZonedGameView: View {
             contactsSection
         }
         .padding(.horizontal)
+    }
+    
+    // MARK: - Department Hiring Section
+    
+    var departmentHiringSection: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("👥")
+                Text("DEPARTMENTS")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .tracking(1.5)
+                Spacer()
+                Text("\(CompanyManager.shared.state.departmentState.totalDepartmentEmployees) total")
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray)
+            }
+            
+            // Warning banners for missing departments
+            departmentWarnings
+            
+            // Department rows
+            ForEach(Department.allCases, id: \.self) { dept in
+                DepartmentHiringRow(
+                    department: dept,
+                    count: CompanyManager.shared.getDepartmentCount(dept),
+                    maxCount: dept.maxEmployees(companyTier: CompanyManager.shared.getCompanyTier()),
+                    hireCost: dept.hireCost,
+                    canAfford: game.cash >= dept.hireCost,
+                    onHire: { hireDepartmentEmployee(dept) }
+                )
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.white.opacity(0.03))
+        )
+    }
+    
+    @ViewBuilder
+    var departmentWarnings: some View {
+        let hasHR = CompanyManager.shared.getDepartmentCount(.hr) > 0
+        let hasSales = CompanyManager.shared.getDepartmentCount(.sales) > 0
+        let hasEngineering = CompanyManager.shared.getDepartmentCount(.engineering) > 0
+        let totalEmployees = CompanyManager.shared.state.totalEmployees
+        
+        VStack(spacing: 6) {
+            if !hasHR && totalEmployees > 10 {
+                WarningBanner(
+                    text: "No HR! Company valuation will decay 15%/year",
+                    color: .red
+                )
+            }
+            
+            if !hasSales && totalEmployees > 5 {
+                WarningBanner(
+                    text: "No Sales team! Product revenue reduced 50%",
+                    color: .orange
+                )
+            }
+            
+            if !hasEngineering && totalEmployees > 5 {
+                WarningBanner(
+                    text: "No Engineers! Products fail 50% more often",
+                    color: .yellow
+                )
+            }
+        }
+    }
+    
+    func hireDepartmentEmployee(_ department: Department) {
+        guard game.cash >= department.hireCost else { return }
+        
+        if CompanyManager.shared.hireDepartmentEmployee(department) {
+            game.cash -= department.hireCost
+            FeedbackCoordinator.shared.purchase()
+            
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "Hired new \(department.rawValue) employee! (\(department.icon))"
+            )
+        }
     }
     
     @ViewBuilder
@@ -2239,6 +2327,132 @@ struct CompanyTypeCard: View {
                         .transition(.scale.combined(with: .opacity))
                 }
             }
+        )
+    }
+}
+
+// MARK: - Department Hiring Row
+struct DepartmentHiringRow: View {
+    let department: Department
+    let count: Int
+    let maxCount: Int
+    let hireCost: Double
+    let canAfford: Bool
+    let onHire: () -> Void
+    
+    @State private var showHired = false
+    
+    var isMaxed: Bool {
+        count >= maxCount
+    }
+    
+    var body: some View {
+        HStack(spacing: 10) {
+            // Department icon
+            Text(department.icon)
+                .font(.system(size: 18))
+            
+            // Department info
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(department.rawValue)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white)
+                    Text("\(count)/\(maxCount)")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.1)))
+                }
+                Text(department.description)
+                    .font(.system(size: 8))
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            // Hire button
+            Button(action: {
+                onHire()
+                withAnimation(.spring()) { showHired = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    withAnimation { showHired = false }
+                }
+            }) {
+                VStack(spacing: 1) {
+                    Text(isMaxed ? "MAX" : "HIRE")
+                        .font(.system(size: 7, weight: .bold))
+                    if !isMaxed {
+                        Text(formatCompact(hireCost))
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                }
+                .foregroundColor(canAfford && !isMaxed ? .black : .gray)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(canAfford && !isMaxed ? Color.green : Color.gray.opacity(0.2))
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(!canAfford || isMaxed)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(count > 0 ? Color.green.opacity(0.05) : Color.white.opacity(0.02))
+        )
+        .overlay(
+            Group {
+                if showHired {
+                    Text("✓ Hired!")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(6)
+                        .background(Color.green)
+                        .cornerRadius(6)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+        )
+    }
+    
+    func formatCompact(_ value: Double) -> String {
+        if value >= 1_000_000 {
+            return String(format: "$%.1fM", value / 1_000_000)
+        } else if value >= 1_000 {
+            return String(format: "$%.0fK", value / 1_000)
+        } else {
+            return String(format: "$%.0f", value)
+        }
+    }
+}
+
+// MARK: - Warning Banner
+struct WarningBanner: View {
+    let text: String
+    var color: Color = .orange
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Text("⚠️")
+                .font(.system(size: 10))
+            Text(text)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundColor(.white)
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(color.opacity(0.2))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(color.opacity(0.5), lineWidth: 1)
+                )
         )
     }
 }
