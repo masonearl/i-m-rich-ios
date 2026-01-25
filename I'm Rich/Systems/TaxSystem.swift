@@ -61,6 +61,108 @@ enum TaxBracket: CaseIterable {
     }
 }
 
+// MARK: - Tax Plan Tiers
+enum TaxPlanTier: Int, Codable, CaseIterable {
+    case basic = 0           // Default - no help
+    case standard = 1        // Basic accountant
+    case professional = 2    // CPA
+    case executive = 3       // Tax attorney
+    case elite = 4           // Offshore strategies
+    case dynasty = 5         // Dynasty planning
+    
+    var name: String {
+        switch self {
+        case .basic: return "Basic Filing"
+        case .standard: return "Standard"
+        case .professional: return "Professional"
+        case .executive: return "Executive"
+        case .elite: return "Elite"
+        case .dynasty: return "Dynasty"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .basic: return "📝"
+        case .standard: return "📊"
+        case .professional: return "💼"
+        case .executive: return "🏛️"
+        case .elite: return "💎"
+        case .dynasty: return "👑"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .basic: return "DIY tax filing"
+        case .standard: return "Hire an accountant"
+        case .professional: return "CPA with deductions"
+        case .executive: return "Tax attorney + shelters"
+        case .elite: return "Offshore optimization"
+        case .dynasty: return "Generational wealth planning"
+        }
+    }
+    
+    var taxReduction: Double {
+        switch self {
+        case .basic: return 0.0        // 0% reduction
+        case .standard: return 0.10    // 10% reduction
+        case .professional: return 0.20 // 20% reduction
+        case .executive: return 0.30   // 30% reduction
+        case .elite: return 0.45       // 45% reduction
+        case .dynasty: return 0.60     // 60% reduction
+        }
+    }
+    
+    var annualCost: Double {
+        switch self {
+        case .basic: return 0
+        case .standard: return 2_000
+        case .professional: return 10_000
+        case .executive: return 50_000
+        case .elite: return 200_000
+        case .dynasty: return 1_000_000
+        }
+    }
+    
+    var upgradeCost: Double {
+        switch self {
+        case .basic: return 0
+        case .standard: return 5_000
+        case .professional: return 25_000
+        case .executive: return 100_000
+        case .elite: return 500_000
+        case .dynasty: return 5_000_000
+        }
+    }
+    
+    var netWorthRequired: Double {
+        switch self {
+        case .basic: return 0
+        case .standard: return 10_000
+        case .professional: return 100_000
+        case .executive: return 1_000_000
+        case .elite: return 10_000_000
+        case .dynasty: return 100_000_000
+        }
+    }
+    
+    var benefits: [String] {
+        switch self {
+        case .basic: return ["Standard deductions only"]
+        case .standard: return ["10% tax reduction", "Basic deduction tracking"]
+        case .professional: return ["20% tax reduction", "Retirement optimization", "Quarterly estimates"]
+        case .executive: return ["30% tax reduction", "Tax shelters", "Business expense optimization"]
+        case .elite: return ["45% tax reduction", "International structures", "Investment timing"]
+        case .dynasty: return ["60% tax reduction", "Trust structures", "Estate planning", "Legacy protection"]
+        }
+    }
+    
+    var nextTier: TaxPlanTier? {
+        TaxPlanTier(rawValue: self.rawValue + 1)
+    }
+}
+
 // MARK: - Tax Deductions / Strategies
 struct TaxStrategy: Codable, Identifiable {
     let id: String
@@ -89,6 +191,10 @@ struct TaxState: Codable {
     var hasAccountant: Bool = false
     var pendingTaxBill: Double = 0
     var taxesPaidLifetime: Double = 0
+    
+    // Tax Plan System
+    var currentPlanTier: TaxPlanTier = .basic
+    var totalTaxSavingsLifetime: Double = 0
     
     struct IncomeBreakdownState: Codable {
         var salary: Double = 0
@@ -215,15 +321,61 @@ class TaxManager: ObservableObject {
         // Capital gains tax (assume long-term for simplicity)
         totalTax += calculateCapitalGainsTax(gains: income.investment, isLongTerm: true)
         
-        // Accountant discount (10% reduction)
-        if state.hasAccountant {
-            totalTax *= 0.90
+        // Apply tax plan reduction (replaces old accountant system)
+        let taxReduction = state.currentPlanTier.taxReduction
+        let originalTax = totalTax
+        totalTax *= (1.0 - taxReduction)
+        
+        // Track savings
+        let savings = originalTax - totalTax
+        if savings > 0 {
+            state.totalTaxSavingsLifetime += savings
         }
         
         // Subtract taxes already paid
         totalTax -= state.yearToDateTaxesPaid
         
         return max(0, totalTax)
+    }
+    
+    // MARK: - Tax Plan Upgrades
+    
+    /// Check if player can upgrade to next tax plan tier
+    func canUpgradePlan(netWorth: Double, cash: Double) -> Bool {
+        guard let nextTier = state.currentPlanTier.nextTier else { return false }
+        return netWorth >= nextTier.netWorthRequired && cash >= nextTier.upgradeCost
+    }
+    
+    /// Get the next available tax plan tier
+    var nextPlanTier: TaxPlanTier? {
+        state.currentPlanTier.nextTier
+    }
+    
+    /// Upgrade to next tax plan tier
+    func upgradePlan(cash: inout Double) -> Bool {
+        guard let nextTier = state.currentPlanTier.nextTier else { return false }
+        guard cash >= nextTier.upgradeCost else { return false }
+        
+        cash -= nextTier.upgradeCost
+        state.currentPlanTier = nextTier
+        
+        // Also set hasAccountant for backward compatibility
+        if nextTier.rawValue >= TaxPlanTier.standard.rawValue {
+            state.hasAccountant = true
+        }
+        
+        return true
+    }
+    
+    /// Get annual cost for current plan
+    var annualPlanCost: Double {
+        state.currentPlanTier.annualCost
+    }
+    
+    /// Calculate how much the current plan saves per year
+    func estimatedAnnualSavings(for income: Double) -> Double {
+        let fullTax = calculateIncomeTax(on: income) + calculateSelfEmploymentTax(on: income * 0.3) // Assume 30% hustle
+        return fullTax * state.currentPlanTier.taxReduction
     }
     
     /// Process year-end taxes (called at end of game year)

@@ -390,8 +390,8 @@ struct ZonedGameView: View {
                 careerSelectionPrompt
             }
             
-            // Tax Overview
-            TaxOverviewView(game: game)
+            // Tax Planning Section
+            taxPlanningSection
             
             // Skills & Education would go here
             educationSection
@@ -400,6 +400,137 @@ struct ZonedGameView: View {
             factionsSection
         }
         .padding(.horizontal)
+    }
+    
+    // MARK: - Tax Planning Section
+    @ObservedObject private var taxManager = TaxManager.shared
+    @State private var showTaxUpgradeSheet = false
+    
+    var taxPlanningSection: some View {
+        VStack(spacing: 12) {
+            // Header
+            HStack {
+                Text("🏛️")
+                Text("TAX PLANNING")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .tracking(1.5)
+                Spacer()
+                Text("\(Int(taxManager.state.currentPlanTier.taxReduction * 100))% savings")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(AppColors.mattGreen)
+            }
+            
+            // Current Plan
+            HStack(spacing: 12) {
+                Text(taxManager.state.currentPlanTier.icon)
+                    .font(.system(size: 28))
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(taxManager.state.currentPlanTier.name)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                    Text(taxManager.state.currentPlanTier.description)
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("-\(Int(taxManager.state.currentPlanTier.taxReduction * 100))%")
+                        .font(.headline.bold())
+                        .foregroundColor(AppColors.mattGreen)
+                    if taxManager.state.currentPlanTier.annualCost > 0 {
+                        Text("\(game.formatCompact(taxManager.state.currentPlanTier.annualCost))/yr")
+                            .font(.caption2)
+                            .foregroundColor(AppColors.warning)
+                    }
+                }
+            }
+            .padding(12)
+            .background(AppColors.surfaceLight)
+            .cornerRadius(10)
+            
+            // Estimated savings this year
+            let estimatedIncome = taxManager.state.yearToDateIncome.total
+            if estimatedIncome > 0 {
+                HStack {
+                    Text("Est. savings this year:")
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                    Spacer()
+                    Text(game.formatCompact(taxManager.estimatedAnnualSavings(for: estimatedIncome)))
+                        .font(.caption.bold())
+                        .foregroundColor(AppColors.mattGreen)
+                }
+            }
+            
+            // Upgrade button
+            if let nextTier = taxManager.nextPlanTier {
+                let canAfford = game.cash >= nextTier.upgradeCost
+                let meetsNetWorth = game.netWorth >= nextTier.netWorthRequired
+                
+                Button(action: { showTaxUpgradeSheet = true }) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("⬆️ Upgrade to \(nextTier.name)")
+                                .font(.system(size: 12, weight: .bold))
+                            Text("\(Int(nextTier.taxReduction * 100))% tax reduction")
+                                .font(.caption)
+                                .foregroundColor(canAfford && meetsNetWorth ? .white.opacity(0.8) : AppColors.textMuted)
+                        }
+                        Spacer()
+                        Text(game.formatCompact(nextTier.upgradeCost))
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(canAfford ? .black : .gray)
+                    }
+                    .foregroundColor(canAfford && meetsNetWorth ? .black : .gray)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(canAfford && meetsNetWorth ? AppColors.mattGreen : AppColors.surfaceLight)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(!canAfford || !meetsNetWorth)
+                
+                if !meetsNetWorth {
+                    Text("🔒 Requires \(game.formatCompact(nextTier.netWorthRequired)) net worth")
+                        .font(.caption2)
+                        .foregroundColor(AppColors.textMuted)
+                }
+            } else {
+                Text("✅ Maximum tax optimization achieved!")
+                    .font(.caption)
+                    .foregroundColor(AppColors.gold)
+            }
+            
+            // Lifetime savings
+            if taxManager.state.totalTaxSavingsLifetime > 0 {
+                HStack {
+                    Text("💰 Lifetime tax savings:")
+                        .font(.caption)
+                        .foregroundColor(AppColors.textMuted)
+                    Spacer()
+                    Text(game.formatCompact(taxManager.state.totalTaxSavingsLifetime))
+                        .font(.caption.bold())
+                        .foregroundColor(AppColors.mattGreen)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(AppColors.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(AppColors.mattGreen.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .sheet(isPresented: $showTaxUpgradeSheet) {
+            TaxPlanUpgradeSheet(game: game)
+        }
     }
     
     func currentCareerSection(_ career: CareerPath) -> some View {
@@ -5107,5 +5238,253 @@ struct DatingPartnerRow: View {
         .padding()
         .background(AppColors.surfaceLight)
         .cornerRadius(10)
+    }
+}
+
+// MARK: - Tax Plan Upgrade Sheet
+struct TaxPlanUpgradeSheet: View {
+    @ObservedObject var game: GameState
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var taxManager = TaxManager.shared
+    @State private var showConfirmation = false
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("🏛️")
+                            .font(.system(size: 50))
+                        
+                        Text("TAX PLANNING")
+                            .font(.system(size: 20, weight: .black))
+                            .foregroundColor(.white)
+                            .tracking(2)
+                        
+                        Text("Optimize your tax strategy to keep more of what you earn")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Current plan
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("CURRENT PLAN")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        currentPlanCard
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Available upgrades
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("AVAILABLE PLANS")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        ForEach(TaxPlanTier.allCases, id: \.rawValue) { tier in
+                            if tier.rawValue > taxManager.state.currentPlanTier.rawValue {
+                                TaxPlanTierRow(tier: tier, game: game)
+                            }
+                        }
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // How it works
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("HOW IT WORKS")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        taxInfoRow(icon: "💰", text: "Higher tiers reduce your effective tax rate")
+                        taxInfoRow(icon: "📅", text: "Plans have annual maintenance fees")
+                        taxInfoRow(icon: "📈", text: "Some plans require minimum net worth")
+                        taxInfoRow(icon: "💎", text: "Elite plans use legal offshore strategies")
+                    }
+                    .padding()
+                    .background(AppColors.surfaceLight)
+                    .cornerRadius(12)
+                }
+                .padding()
+            }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle("Tax Planning")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    var currentPlanCard: some View {
+        HStack(spacing: 12) {
+            Text(taxManager.state.currentPlanTier.icon)
+                .font(.system(size: 36))
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(taxManager.state.currentPlanTier.name)
+                    .font(.headline.bold())
+                    .foregroundColor(.white)
+                
+                ForEach(taxManager.state.currentPlanTier.benefits, id: \.self) { benefit in
+                    HStack(spacing: 4) {
+                        Text("✓")
+                            .font(.caption)
+                            .foregroundColor(AppColors.mattGreen)
+                        Text(benefit)
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("-\(Int(taxManager.state.currentPlanTier.taxReduction * 100))%")
+                    .font(.title2.bold())
+                    .foregroundColor(AppColors.mattGreen)
+                Text("tax rate")
+                    .font(.caption2)
+                    .foregroundColor(AppColors.textMuted)
+            }
+        }
+        .padding()
+        .background(AppColors.mattGreen.opacity(0.15))
+        .cornerRadius(12)
+    }
+    
+    func taxInfoRow(icon: String, text: String) -> some View {
+        HStack(spacing: 8) {
+            Text(icon)
+                .font(.caption)
+            Text(text)
+                .font(.caption)
+                .foregroundColor(AppColors.textSecondary)
+        }
+    }
+}
+
+// MARK: - Tax Plan Tier Row
+struct TaxPlanTierRow: View {
+    let tier: TaxPlanTier
+    @ObservedObject var game: GameState
+    @ObservedObject private var taxManager = TaxManager.shared
+    @State private var showConfirmation = false
+    
+    var canAfford: Bool {
+        game.cash >= tier.upgradeCost
+    }
+    
+    var meetsNetWorth: Bool {
+        game.netWorth >= tier.netWorthRequired
+    }
+    
+    var isNextTier: Bool {
+        tier.rawValue == taxManager.state.currentPlanTier.rawValue + 1
+    }
+    
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                Text(tier.icon)
+                    .font(.system(size: 28))
+                    .opacity(meetsNetWorth ? 1.0 : 0.5)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(tier.name)
+                            .font(.subheadline.bold())
+                            .foregroundColor(meetsNetWorth ? .white : AppColors.textMuted)
+                        
+                        if !meetsNetWorth {
+                            Text("🔒")
+                                .font(.caption)
+                        }
+                    }
+                    
+                    Text(tier.description)
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("-\(Int(tier.taxReduction * 100))%")
+                        .font(.headline.bold())
+                        .foregroundColor(meetsNetWorth ? AppColors.mattGreen : AppColors.textMuted)
+                    
+                    Text(game.formatCompact(tier.upgradeCost))
+                        .font(.caption)
+                        .foregroundColor(canAfford ? AppColors.textSecondary : AppColors.warning)
+                }
+            }
+            
+            // Requirements
+            if !meetsNetWorth {
+                HStack {
+                    Text("Requires \(game.formatCompact(tier.netWorthRequired)) net worth")
+                        .font(.caption2)
+                        .foregroundColor(AppColors.warning)
+                    Spacer()
+                }
+            }
+            
+            // Upgrade button (only for next tier)
+            if isNextTier && meetsNetWorth {
+                Button(action: { showConfirmation = true }) {
+                    Text("Upgrade to \(tier.name)")
+                        .font(.caption.bold())
+                        .foregroundColor(canAfford ? .black : .gray)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(canAfford ? AppColors.mattGreen : AppColors.surfaceLight)
+                        )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(!canAfford)
+            }
+            
+            // Annual cost note
+            if tier.annualCost > 0 {
+                HStack {
+                    Text("📅")
+                        .font(.caption2)
+                    Text("\(game.formatCompact(tier.annualCost))/year maintenance")
+                        .font(.caption2)
+                        .foregroundColor(AppColors.textMuted)
+                    Spacer()
+                }
+            }
+        }
+        .padding()
+        .background(isNextTier ? AppColors.mattGreen.opacity(0.1) : AppColors.surfaceLight)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isNextTier ? AppColors.mattGreen.opacity(0.5) : Color.clear, lineWidth: 1)
+        )
+        .alert("Upgrade Tax Plan?", isPresented: $showConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Upgrade (\(game.formatCompact(tier.upgradeCost)))") {
+                if taxManager.upgradePlan(cash: &game.cash) {
+                    NewsFeedManager.shared.addNews("🏛️", "TAX PLAN UPGRADED", "Now saving \(Int(tier.taxReduction * 100))% on taxes with \(tier.name) plan!")
+                }
+            }
+        } message: {
+            Text("Upgrade to \(tier.name) for \(game.formatCompact(tier.upgradeCost))? This will reduce your taxes by \(Int(tier.taxReduction * 100))%.")
+        }
     }
 }
