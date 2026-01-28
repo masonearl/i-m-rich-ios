@@ -4184,8 +4184,8 @@ struct NewVentureSheet: View {
                         HStack {
                             TextField("Company name", text: $ventureName)
                                 .padding(10)
-                                .background(Color.white)
-                                .foregroundColor(.black)
+                                .background(AppColors.surfaceLight)
+                                .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
                         .padding(.horizontal)
