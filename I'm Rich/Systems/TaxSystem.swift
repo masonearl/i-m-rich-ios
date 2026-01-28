@@ -352,12 +352,14 @@ class TaxManager: ObservableObject {
     }
     
     /// Upgrade to next tax plan tier
-    func upgradePlan(cash: inout Double) -> Bool {
+    func upgradePlan(cash: inout Double, netWorth: Double) -> Bool {
         guard let nextTier = state.currentPlanTier.nextTier else { return false }
         guard cash >= nextTier.upgradeCost else { return false }
+        guard netWorth >= nextTier.netWorthRequired else { return false }
         
         cash -= nextTier.upgradeCost
         state.currentPlanTier = nextTier
+        objectWillChange.send() // Force UI update
         
         // Also set hasAccountant for backward compatibility
         if nextTier.rawValue >= TaxPlanTier.standard.rawValue {

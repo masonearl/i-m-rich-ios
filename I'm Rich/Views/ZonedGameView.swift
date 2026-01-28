@@ -5394,11 +5394,22 @@ struct TaxPlanTierRow: View {
     private var tierRequirementsRow: some View {
         if !meetsNetWorth {
             HStack {
-                Text("Requires \(game.formatCompact(tier.netWorthRequired)) net worth")
+                Image(systemName: "lock.fill")
                     .font(.caption2)
-                    .foregroundColor(AppColors.warning)
+                Text("Requires \(game.formatCompact(tier.netWorthRequired)) net worth (you have \(game.formatCompact(game.netWorth)))")
+                    .font(.caption2)
                 Spacer()
             }
+            .foregroundColor(AppColors.warning)
+        } else if !canAfford && isNextTier {
+            HStack {
+                Image(systemName: "dollarsign.circle")
+                    .font(.caption2)
+                Text("Need \(game.formatCompact(tier.upgradeCost)) cash (you have \(game.formatCompact(game.cash)))")
+                    .font(.caption2)
+                Spacer()
+            }
+            .foregroundColor(AppColors.warning)
         }
     }
     
@@ -5432,7 +5443,7 @@ struct TaxPlanTierRow: View {
     }
     
     private func handleUpgrade() {
-        if taxManager.upgradePlan(cash: &game.cash) {
+        if taxManager.upgradePlan(cash: &game.cash, netWorth: game.netWorth) {
             NewsFeedManager.shared.addNews(category: .economy, headline: "🏛️ TAX PLAN UPGRADED - Now saving \(Int(tier.taxReduction * 100))% on taxes with \(tier.name) plan!")
         }
     }
