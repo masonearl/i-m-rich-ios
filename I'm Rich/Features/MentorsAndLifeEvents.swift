@@ -296,9 +296,12 @@ class MentorLifeEventManager: ObservableObject {
     }
     
     func startEventLoop() {
-        eventTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.tickEvents()
         }
+        // Add to .common mode so it continues during scrolling
+        RunLoop.main.add(timer, forMode: .common)
+        eventTimer = timer
     }
     
     private func tickEvents() {

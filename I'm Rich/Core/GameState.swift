@@ -16,6 +16,9 @@ class GameState: ObservableObject {
     @Published var totalEarned: Double {
         didSet { UserDefaults.standard.set(totalEarned, forKey: "totalEarned") }
     }
+    @Published var highestNetWorth: Double {
+        didSet { UserDefaults.standard.set(highestNetWorth, forKey: "highestNetWorth") }
+    }
     @Published var statusPoints: Int {
         didSet { UserDefaults.standard.set(statusPoints, forKey: "statusPoints") }
     }
@@ -189,7 +192,70 @@ class GameState: ObservableObject {
     
     var promotionCost: Double {
         guard let next = nextRole else { return 0 }
-        return Double(next.statusPoints) * 100
+        // Cost scales exponentially with role level
+        let baseMultiplier = pow(2.0, Double(currentRoleIndex))
+        return Double(next.statusPoints) * 150 * baseMultiplier
+    }
+    
+    // MARK: - Promotion Requirements
+    
+    /// Number of contacts required for next promotion
+    var contactsRequiredForPromotion: Int {
+        // Each level requires more networking
+        // Level 0→1: 1 contact, 1→2: 2 contacts, 2→3: 3 contacts, etc.
+        return max(1, currentRoleIndex + 1)
+    }
+    
+    /// How many career-relevant contacts the player has met
+    var careerContactsMet: Int {
+        contacts.filter { $0.hasMet && ($0.careerPath == nil || $0.careerPath == selectedCareer) }.count
+    }
+    
+    /// Status points required for next promotion
+    var statusRequiredForPromotion: Int {
+        guard let next = nextRole else { return 0 }
+        // Require 50% of the role's status threshold
+        return next.statusPoints / 2
+    }
+    
+    /// Check if player meets all promotion requirements
+    var canPromote: Bool {
+        guard nextRole != nil else { return false }
+        guard cash >= promotionCost else { return false }
+        guard careerContactsMet >= contactsRequiredForPromotion else { return false }
+        guard statusPoints >= statusRequiredForPromotion else { return false }
+        return true
+    }
+    
+    /// Get detailed promotion requirements for UI
+    var promotionRequirements: [(requirement: String, met: Bool, detail: String)] {
+        var reqs: [(requirement: String, met: Bool, detail: String)] = []
+        
+        // Cash requirement
+        let hasCash = cash >= promotionCost
+        reqs.append((
+            requirement: "💰 Cash",
+            met: hasCash,
+            detail: "\(formatCompact(cash)) / \(formatCompact(promotionCost))"
+        ))
+        
+        // Contacts requirement
+        let hasContacts = careerContactsMet >= contactsRequiredForPromotion
+        reqs.append((
+            requirement: "🤝 Network",
+            met: hasContacts,
+            detail: "\(careerContactsMet) / \(contactsRequiredForPromotion) contacts"
+        ))
+        
+        // Status requirement
+        let hasStatus = statusPoints >= statusRequiredForPromotion
+        reqs.append((
+            requirement: "⚡ Status",
+            met: hasStatus,
+            detail: "\(statusPoints) / \(statusRequiredForPromotion) points"
+        ))
+        
+        return reqs
     }
     
     var passiveIncomePerSecond: Double {
@@ -208,6 +274,10 @@ class GameState: ObservableObject {
         for upgrade in upgrades where upgrade.purchased {
             if case .passiveIncome(let amount) = upgrade.effect {
                 income += amount * 0.1  // Reduce upgrade passive income by 90%
+            }
+            // Luxury items COST money (upkeep) but give status
+            if case .luxuryFlex(_, let upkeepPerSecond) = upgrade.effect {
+                income -= upkeepPerSecond  // Deduct upkeep cost!
             }
         }
         
@@ -279,6 +349,28 @@ class GameState: ObservableObject {
             income += product.ongoingRevenue * 0.05  // Same scaling as passiveIncomePerSecond
         }
         return income * prestigeManager.legacyMultiplier
+    }
+    
+    /// Total luxury upkeep cost per second (yachts, jets, mansions, etc.)
+    var luxuryUpkeepPerSecond: Double {
+        var upkeep: Double = 0
+        for upgrade in upgrades where upgrade.purchased {
+            if case .luxuryFlex(_, let upkeepPerSecond) = upgrade.effect {
+                upkeep += upkeepPerSecond
+            }
+        }
+        return upkeep
+    }
+    
+    /// List of owned luxury items for display
+    var ownedLuxuryItems: [(name: String, icon: String, upkeep: Double)] {
+        upgrades.compactMap { upgrade in
+            guard upgrade.purchased else { return nil }
+            if case .luxuryFlex(_, let upkeep) = upgrade.effect {
+                return (upgrade.name, upgrade.icon, upkeep)
+            }
+            return nil
+        }
     }
     
     var availableAutoTappers: [AutoTapper] {
@@ -446,13 +538,13 @@ class GameState: ObservableObject {
     }
     
     /// BALANCED: Phase-based income cap per tick (0.1 seconds)
-    /// Early phases have strict caps, late game allows more but still bounded
+    /// Early phases have strict caps, late game allows more to match displayed rates
     var maxIncomePerTick: Double {
         switch currentPhase {
         case .hustle: return 100               // Max $1K/sec = $86K/day
         case .careerLeverage: return 1_000     // Max $10K/sec = $864K/day
-        case .portfolioEngine: return 10_000   // Max $100K/sec = $8.6M/day
-        case .legacyScale: return 100_000      // Max $1M/sec = $86M/day
+        case .portfolioEngine: return 100_000  // Max $1M/sec = $86M/day
+        case .legacyScale: return 1_000_000    // Max $10M/sec = $864M/day
         }
     }
     
@@ -521,6 +613,7 @@ class GameState: ObservableObject {
         
         let loadedEarned = UserDefaults.standard.double(forKey: "totalEarned")
         self.totalEarned = min(loadedEarned, GameState.maxNetWorth * 10)
+        self.highestNetWorth = UserDefaults.standard.double(forKey: "highestNetWorth")
         self.statusPoints = UserDefaults.standard.integer(forKey: "statusPoints")
         self.totalTaps = UserDefaults.standard.integer(forKey: "totalTaps")
         self.highestStreak = UserDefaults.standard.integer(forKey: "highestStreak")
@@ -600,13 +693,21 @@ class GameState: ObservableObject {
     // MARK: - Game Loop
     
     func startGameLoop() {
-        gameTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        // Create timer for main game loop (0.1s interval)
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
             self?.tick()
         }
+        // Add to .common mode so it continues during scrolling
+        RunLoop.main.add(timer, forMode: .common)
+        gameTimer = timer
         
-        opportunityTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        // Create timer for opportunity generation (30s interval)
+        let oppTimer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
             self?.generateOpportunity()
         }
+        // Also add to .common mode
+        RunLoop.main.add(oppTimer, forMode: .common)
+        opportunityTimer = oppTimer
     }
     
     // Track game day for daily sales reset (1 game week = ~5.77 real seconds)
@@ -662,6 +763,11 @@ class GameState: ObservableObject {
         // Sync financial wealth with net worth
         let netWorth = cash + totalInvestmentValue
         wealthManager.syncFinancialWealth(netWorth: netWorth)
+        
+        // Track highest net worth achieved
+        if netWorth > highestNetWorth {
+            highestNetWorth = netWorth
+        }
         
         // Lifecycle tick - check for year-end
         if let yearEndEvent = lifecycleManager.tick(deltaTime: deltaTime) {
@@ -722,8 +828,8 @@ class GameState: ObservableObject {
             
             // Get the investment's sentiment (affects returns mildly)
             let sentiment = InvestmentSentimentManager.shared.getSentiment(for: investment.id)
-            // Sentiment multiplier is now gentler (0.8 to 1.2 range instead of full range)
-            let sentimentMultiplier = 0.9 + (sentiment.returnMultiplier * 0.2)
+            // Sentiment multiplier is now gentler (0.9 to 1.1 range instead of full range)
+            let sentimentMultiplier = 0.9 + (sentiment.level.returnMultiplier * 0.2)
             
             // Base annual return (e.g., 0.10 = 10%)
             let baseReturn = investment.baseReturn
@@ -782,6 +888,14 @@ class GameState: ObservableObject {
     // MARK: - Year End Processing
     
     func processYearEnd(event: YearEndEvent) {
+        // ═══════════════════════════════════════════════════════════
+        // SAFETY: Track starting cash and limit total deductions to 50%
+        // This prevents the "cash reset to zero" bug
+        // ═══════════════════════════════════════════════════════════
+        let startingCash = cash
+        let maxTotalDeduction = startingCash * 0.5  // Never take more than 50% of cash in one year
+        var totalDeducted: Double = 0
+        
         // Compound all investment gains (with partnership bonuses)
         var totalCompoundedGains: Double = 0
         for i in 0..<investments.count where investments[i].amountInvested > 0 {
@@ -803,38 +917,31 @@ class GameState: ObservableObject {
             // Announce in news feed
             NewsFeedManager.shared.addNews(
                 category: .personal,
-                headline: "Year-end investment returns: +\(formatCompact(totalCompoundedGains))"
+                headline: "📈 Investment returns: +\(formatCompact(totalCompoundedGains))"
             )
         }
         
         // ═══════════════════════════════════════════════════════════
         // CONSEQUENCE SYSTEM - Monthly Expenses & Lifestyle Costs
+        // (Now capped to prevent cash drain)
         // ═══════════════════════════════════════════════════════════
         
         let yearlyExpenses = calculateYearlyExpenses()
-        if yearlyExpenses > 0 {
-            if cash >= yearlyExpenses {
-                cash -= yearlyExpenses
-                CreditManager.shared.modifyScore(by: 5, reason: "Expenses paid on time")
-            } else if cash > 0 {
-                // Partial payment - pay what we can (up to 50% of cash for expenses)
-                let partialPayment = min(cash * 0.5, yearlyExpenses)
-                let shortfall = yearlyExpenses - partialPayment
-                cash -= partialPayment
-                CreditManager.shared.modifyScore(by: -20, reason: "Partial expense payment")
-                NewsFeedManager.shared.addNews(
-                    category: .personal,
-                    headline: "⚠️ Couldn't cover all expenses. Paid \(formatCompact(partialPayment)), shortfall: \(formatCompact(shortfall))"
-                )
+        if yearlyExpenses > 0 && totalDeducted < maxTotalDeduction {
+            let affordableExpenses = min(yearlyExpenses, maxTotalDeduction - totalDeducted, cash * 0.2)
+            if affordableExpenses > 0 {
+                cash -= affordableExpenses
+                totalDeducted += affordableExpenses
+                CreditManager.shared.modifyScore(by: 3, reason: "Living expenses paid")
             }
-            // If cash is 0, no deduction (nothing to take)
         }
         
         // Process partnership yearly costs
-        PartnershipManager.shared.processYearlyPartnershipCosts(game: self)
+        // Partnership costs (capped)
+        // PartnershipManager.shared.processYearlyPartnershipCosts(game: self) // Temporarily disabled - was causing cash drain
         
         // ═══════════════════════════════════════════════════════════
-        // TAX SYSTEM - Year-End Taxes
+        // TAX SYSTEM - Year-End Taxes (capped to prevent cash drain)
         // ═══════════════════════════════════════════════════════════
         
         // Record investment gains as income for tax purposes
@@ -842,88 +949,55 @@ class GameState: ObservableObject {
             TaxManager.shared.recordInvestmentIncome(totalCompoundedGains)
         }
         
-        // Process taxes (safely - don't go negative)
-        let (taxBill, taxPaid) = TaxManager.shared.processYearEnd(game: self)
-        if taxBill > 0 {
-            if taxPaid && cash >= taxBill {
-                cash -= taxBill
+        // Process taxes (capped to max deduction limit)
+        let (taxBill, _) = TaxManager.shared.processYearEnd(game: self)
+        if taxBill > 0 && totalDeducted < maxTotalDeduction {
+            let affordableTax = min(taxBill, maxTotalDeduction - totalDeducted, cash * 0.15)
+            if affordableTax > 0 {
+                cash -= affordableTax
+                totalDeducted += affordableTax
                 NewsFeedManager.shared.addNews(
                     category: .markets,
-                    headline: "💰 Taxes paid: \(formatCompact(taxBill)) (Effective rate: \(Int(TaxManager.shared.effectiveTaxRate(for: taxBill) * 100))%)"
-                )
-            } else if taxPaid && cash > 0 {
-                // Partial tax payment
-                let partialPayment = min(cash * 0.4, taxBill)
-                cash -= partialPayment
-                NewsFeedManager.shared.addNews(
-                    category: .markets,
-                    headline: "⚠️ Partial taxes: Paid \(formatCompact(partialPayment)) of \(formatCompact(taxBill))"
-                )
-            } else {
-                NewsFeedManager.shared.addNews(
-                    category: .markets,
-                    headline: "⚠️ Tax debt! Owe IRS: \(formatCompact(taxBill)) - Credit score impacted!"
+                    headline: "💰 Taxes: \(formatCompact(affordableTax))"
                 )
             }
         }
         
-        // ═══════════════════════════════════════════════════════════
-        
         // Age credit account
         CreditManager.shared.ageAccountByMonth()
-        CreditManager.shared.ageAccountByMonth() // 12 months = age by 12
-        for _ in 0..<10 {
+        for _ in 0..<11 {
             CreditManager.shared.ageAccountByMonth()
         }
         
         // ═══════════════════════════════════════════════════════════
-        
-        // ═══════════════════════════════════════════════════════════
-        // COMPANY HEALTH - Payroll, Staffing, & Decay
-        // Players MUST hire employees and pay salaries!
+        // COMPANY HEALTH - Payroll (capped to prevent cash drain)
         // ═══════════════════════════════════════════════════════════
         
         let companyManager = CompanyManager.shared
-        
-        // Process payroll (employees cost money!)
-        // Only charge payroll if company is founded with employees
         let payroll = companyManager.annualPayroll
-        if payroll > 0 && companyManager.state.totalEmployees > 0 {
-            // Be reasonable - only charge what they can afford, don't wipe out cash
-            let affordablePayroll = min(payroll, cash * 0.5) // Max 50% of cash for payroll
-            
-            if cash >= payroll {
-                // Can afford full payroll - great!
-                cash -= payroll
+        
+        if payroll > 0 && companyManager.state.totalEmployees > 0 && totalDeducted < maxTotalDeduction {
+            let affordablePayroll = min(payroll, maxTotalDeduction - totalDeducted, cash * 0.10)
+            if affordablePayroll > 0 {
+                cash -= affordablePayroll
+                totalDeducted += affordablePayroll
                 NewsFeedManager.shared.addNews(
                     category: .personal,
-                    headline: "💼 Payroll paid: \(formatCompact(payroll)) for \(companyManager.state.totalEmployees) employees"
+                    headline: "💼 Payroll: \(formatCompact(affordablePayroll)) for \(companyManager.state.totalEmployees) employees"
                 )
-            } else if cash > 0 {
-                // Partial payment - pay what we can, some consequences
-                let partialPayment = min(cash * 0.5, payroll) // Pay up to 50% of cash
-                cash -= partialPayment
-                let shortfall = payroll - partialPayment
-                NewsFeedManager.shared.addNews(
-                    category: .personal,
-                    headline: "⚠️ Payroll partial: Paid \(formatCompact(partialPayment)) of \(formatCompact(payroll)). Shortfall: \(formatCompact(shortfall))"
-                )
-                // Some employees unhappy but don't quit en masse
-                CreditManager.shared.modifyScore(by: -10, reason: "Partial payroll payment")
             }
-            // Note: If cash is 0, no payroll deduction (nothing to take)
         }
         
-        // Check staffing levels
+        // Check staffing levels (info only, no additional drain)
         let status = companyManager.staffingStatus
         if companyManager.isUnderstaffed {
             NewsFeedManager.shared.addNews(
                 category: .personal,
-                headline: "\(status.icon) \(status.message) - Need \(companyManager.requiredEmployees) employees, have \(companyManager.state.totalEmployees)"
+                headline: "\(status.icon) \(status.message)"
             )
         }
         
-        // Process company health (decay, understaffing penalties)
+        // Process company health (no cash cost, just valuation effects)
         let (_, decay, failed) = companyManager.processYearlyCompanyHealth()
         
         if failed {
@@ -999,25 +1073,21 @@ class GameState: ObservableObject {
         // Process family yearly events
         familyManager.processYear(currentYear: lifecycleManager.gameYearsPassed + lifecycleManager.startingAge)
         
-        // Deduct child expenses (safely - don't go negative)
+        // Child expenses (capped to total deduction limit)
         let childExpenses = familyManager.state.totalChildExpenses
-        if childExpenses > 0 && cash > 0 {
-            let payment = min(childExpenses, cash * 0.3) // Max 30% of cash for family expenses
-            cash -= payment
-            if payment < childExpenses {
+        if childExpenses > 0 && totalDeducted < maxTotalDeduction {
+            let affordableChild = min(childExpenses, maxTotalDeduction - totalDeducted, cash * 0.05)
+            if affordableChild > 0 {
+                cash -= affordableChild
+                totalDeducted += affordableChild
                 NewsFeedManager.shared.addNews(
                     category: .personal,
-                    headline: "⚠️ Family expenses: Paid \(formatCompact(payment)) of \(formatCompact(childExpenses))"
-                )
-            } else {
-                NewsFeedManager.shared.addNews(
-                    category: .personal,
-                    headline: "👨‍👩‍👧‍👦 Yearly family expenses: \(formatCompact(payment))"
+                    headline: "👨‍👩‍👧‍👦 Family: \(formatCompact(affordableChild))"
                 )
             }
         }
         
-        // Partner income contribution
+        // Partner income contribution (this ADDS money, always good)
         if let partner = familyManager.state.partner, partner.isMarried {
             let partnerIncome = partner.incomeContribution
             if partnerIncome > 0 {
@@ -1031,9 +1101,20 @@ class GameState: ObservableObject {
             lifecycleManager.showRetirementPrompt = true
         }
         
-        // SAFETY: Ensure cash never goes negative after year-end processing
+        // ═══════════════════════════════════════════════════════════
+        // YEAR-END SUMMARY
+        // ═══════════════════════════════════════════════════════════
+        let finalCash = cash
+        let netChange = finalCash - startingCash + totalCompoundedGains
+        
+        if netChange >= 0 {
+            print("📈 Year-end: Started with \(formatCompact(startingCash)), ended with \(formatCompact(finalCash)) (+\(formatCompact(netChange)))")
+        } else {
+            print("📉 Year-end: Started with \(formatCompact(startingCash)), ended with \(formatCompact(finalCash)) (\(formatCompact(netChange)))")
+        }
+        
+        // SAFETY: Ensure cash never goes negative
         if cash < 0 {
-            print("⚠️ Cash went negative (\(cash)) during year-end - resetting to 0")
             cash = 0
         }
     }
@@ -1058,37 +1139,40 @@ class GameState: ObservableObject {
     func calculateYearlyExpenses() -> Double {
         var expenses: Double = 0
         
-        // Base living expenses scale with lifestyle
-        let baseExpenses: [Int: Double] = [
-            1: 24_000,       // $2K/month
-            2: 48_000,       // $4K/month
-            3: 84_000,       // $7K/month
-            4: 150_000,      // $12.5K/month
-            5: 360_000,      // $30K/month
-            6: 1_200_000,    // $100K/month
-            7: 6_000_000,    // $500K/month
-            8: 24_000_000    // $2M/month
-        ]
-        expenses += baseExpenses[lifestyleLevel] ?? 24_000
+        // FIXED: Scale expenses with CASH income, not just net worth
+        // This prevents the death spiral where high investments = high expenses = cash drain
         
-        // Housing costs
+        // Calculate actual "lifestyle" based on passive income + cash, not total net worth
+        let yearlyPassiveIncome = passiveIncomePerSecond * 60 * 5  // 5 min real time = 1 year
+        let affordableLifestyle = max(cash, yearlyPassiveIncome * 12)  // What they can actually afford
+        
+        // Lifestyle expenses are 5-15% of what you can afford (scales with status)
+        let lifestyleRate = 0.05 + (Double(statusPoints) * 0.0001)  // 5% base + 0.01% per status point
+        let baseExpenses = affordableLifestyle * min(0.15, lifestyleRate)  // Cap at 15%
+        expenses += baseExpenses
+        
+        // Housing costs (fixed, not scaling)
         if housing.status == .ownsHome {
             expenses += housing.monthlyPayment * 12  // Mortgage
-            expenses += housing.propertyValue * 0.015  // Property taxes & maintenance
+            expenses += housing.propertyValue * 0.01  // 1% maintenance (reduced from 1.5%)
         } else {
-            expenses += 24_000 * Double(lifestyleLevel) / 2  // Rent scales with lifestyle
+            // Rent: reasonable scaling, capped
+            let rentCost = min(120_000, 12_000 * Double(lifestyleLevel))  // Max $10K/month rent
+            expenses += rentCost
         }
         
-        // Career-related expenses
+        // Career-related expenses (modest)
         if selectedCareer != nil {
-            expenses += 5000 * Double(currentRoleIndex + 1)  // Professional expenses scale with role
+            expenses += 2000 * Double(currentRoleIndex + 1)  // Professional expenses
         }
         
         // Apply credit score modifier (poor credit = higher costs)
         let creditMultiplier = CreditManager.shared.state.tier.purchaseCostMultiplier
         expenses *= creditMultiplier
         
-        return expenses
+        // SAFETY: Never charge more than 25% of cash in expenses
+        let maxAffordable = cash * 0.25
+        return min(expenses, maxAffordable)
     }
     
     // MARK: - Energy-Based Actions
@@ -1192,14 +1276,31 @@ class GameState: ObservableObject {
     }
     
     static let tapMilestones: [Int: (title: String, message: String, emoji: String, bonusMultiplier: Double)] = [
-        1000: ("HUSTLER!", "1,000 taps! You've got the grind mentality. Keep going!", "💪", 100),
-        5000: ("GRINDER!", "5,000 taps! Your work ethic is unmatched!", "🔥", 500),
+        // Early milestones - celebrate the beginning!
+        50: ("FIRST STEPS!", "50 taps! Every empire starts with a single tap!", "👶", 5),
+        100: ("GETTING STARTED!", "100 taps! You're warming up, keep it going!", "🌱", 10),
+        250: ("PICKING UP STEAM!", "250 taps! Now you're getting the hang of it!", "💨", 25),
+        500: ("NICE HUSTLE!", "500 taps! You little hustler! The grind is paying off!", "🔥", 50),
+        750: ("ON A ROLL!", "750 taps! Nothing can slow you down now!", "🎯", 75),
+        
+        // Core milestones
+        1000: ("HUSTLER!", "1,000 taps! You've got that grind mentality. Keep going!", "💪", 100),
+        2500: ("DETERMINED!", "2,500 taps! Most people quit by now. Not you!", "🎖️", 250),
+        5000: ("GRINDER!", "5,000 taps! Your work ethic is unmatched!", "⚡", 500),
+        7500: ("UNSTOPPABLE!", "7,500 taps! You're locked in and focused!", "🔒", 750),
         10000: ("MACHINE!", "10,000 taps! You're built different!", "🤖", 1000),
-        25000: ("RELENTLESS!", "25,000 taps! Nothing can stop you!", "⚡", 2500),
+        
+        // Mid-game milestones
+        15000: ("CHAMPION!", "15,000 taps! Champions are made, not born!", "🏅", 1500),
+        25000: ("RELENTLESS!", "25,000 taps! Nothing can stop you!", "🌪️", 2500),
         50000: ("LEGENDARY!", "50,000 taps! You're in the top 1%!", "👑", 5000),
+        75000: ("ELITE!", "75,000 taps! The elite recognize their own!", "⭐", 7500),
         100000: ("IMMORTAL!", "100,000 taps! Your dedication is INSANE!", "🏆", 10000),
+        
+        // Late-game milestones
         250000: ("TRANSCENDENT!", "250,000 taps! You've achieved the impossible!", "✨", 25000),
         500000: ("GODLIKE!", "500,000 taps! Mere mortals bow before you!", "🌟", 50000),
+        750000: ("MYTHICAL!", "750,000 taps! Legends will speak of your hustle!", "🐉", 75000),
         1000000: ("MILLION TAP MASTER!", "1,000,000 TAPS! You are the ultimate hustler!", "💎", 100000)
     ]
     
@@ -1241,11 +1342,20 @@ class GameState: ObservableObject {
     
     func promote() -> Bool {
         guard let next = nextRole else { return false }
-        guard cash >= promotionCost else { return false }
         
+        // Check ALL requirements
+        guard canPromote else { return false }
+        
+        // Deduct cost
         cash -= promotionCost
         currentRoleIndex += 1
         statusPoints += next.statusPoints
+        
+        // Announce the promotion with what was required
+        NewsFeedManager.shared.addNews(
+            category: .personal,
+            headline: "🎉 PROMOTED to \(next.title)! Your network and reputation paid off!"
+        )
         
         // Check if max career reached - unlock ventures!
         if let career = selectedCareer {
@@ -1344,6 +1454,15 @@ class GameState: ObservableObject {
         // Apply status bonus immediately
         if case .statusBonus(let points) = upgrades[index].effect {
             statusPoints += points
+        }
+        
+        // Luxury items give status but cost money to maintain
+        if case .luxuryFlex(let status, let upkeep) = upgrades[index].effect {
+            statusPoints += status
+            NewsFeedManager.shared.addNews(
+                category: .personal,
+                headline: "⚠️ Luxury purchase! +\(status) status but costs $\(Int(upkeep))/sec to maintain"
+            )
         }
         
         return true

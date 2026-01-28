@@ -190,6 +190,9 @@ struct FamilyState: Codable {
     var currentlyDating: PotentialPartner? = nil  // Active dating partner
     var datesCompleted: Int = 0
     
+    // 💎 Easter egg: Tiffany Tax
+    var tiffanyTaxApplied: Bool = false
+    
     var isMarried: Bool {
         partner?.isMarried == true
     }
@@ -285,6 +288,9 @@ class FamilyManager: ObservableObject {
             PotentialPartner(id: "partner_traveler", name: "Sage", personality: .freeSpirit, careerFocus: nil, wealthPreference: .experiences, attractivenessBonus: 19),
             PotentialPartner(id: "partner_entrepreneur", name: "Blake", personality: .ambitious, careerFocus: .tech, wealthPreference: .financial, attractivenessBonus: 14),
             PotentialPartner(id: "partner_athlete", name: "Drew", personality: .ambitious, careerFocus: nil, wealthPreference: .health, attractivenessBonus: 22),
+            
+            // 💎 Special easter egg partner - WARNING: Expensive taste!
+            PotentialPartner(id: "partner_tiffany", name: "Tiffany", personality: .freeSpirit, careerFocus: nil, wealthPreference: .financial, attractivenessBonus: 25),
         ]
         
         // Shuffle and take 6 random partners
@@ -401,6 +407,47 @@ class FamilyManager: ObservableObject {
         
         FeedbackCoordinator.shared.achievement()
         return true
+    }
+    
+    /// 💎 EASTER EGG: Apply Tiffany Tax - called from GameState after proposal
+    /// Returns the amount "lost" to Tiffany's expensive taste
+    func applyTiffanyTax(game: GameState) -> Double {
+        guard let partner = state.partner, partner.name.lowercased() == "tiffany" else {
+            return 0
+        }
+        
+        guard !state.tiffanyTaxApplied else { return 0 }  // Only apply once
+        
+        state.tiffanyTaxApplied = true
+        
+        // Calculate half of current wealth
+        let cashLost = game.cash * 0.5
+        
+        // Reduce cash by half
+        game.cash -= cashLost
+        
+        // Also reduce investments by half (she gets half in the prenup... wait, there was no prenup!)
+        for i in 0..<game.investments.count {
+            game.investments[i].amountInvested *= 0.5
+            game.investments[i].unrealizedGains *= 0.5
+        }
+        
+        // Calculate total loss
+        let investmentLoss = game.totalInvestmentValue  // Already halved
+        let totalLoss = cashLost + investmentLoss
+        
+        // Breaking news!
+        NewsFeedManager.shared.addNews(
+            category: .personal,
+            headline: "💎 TIFFANY'S TASTE IS EXPENSIVE - Half your assets are now funding shopping sprees. Should've gotten a prenup!"
+        )
+        
+        return totalLoss
+    }
+    
+    /// Check if player married Tiffany
+    var marriedTiffany: Bool {
+        state.tiffanyTaxApplied
     }
     
     // MARK: - Children

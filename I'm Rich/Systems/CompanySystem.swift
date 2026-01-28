@@ -283,6 +283,12 @@ struct Venture: Identifiable, Codable {
     var growthRate: Double  // Annual growth rate
     var isActive: Bool
     
+    // IPO properties
+    var isPublic: Bool = false
+    var stockPrice: Double = 0
+    var sharesOutstanding: Double = 1_000_000  // 1M shares default
+    var ownershipPercent: Double = 1.0  // 100% ownership initially
+    
     /// Calculate yearly revenue based on valuation and industry
     var yearlyRevenue: Double {
         valuation * 0.15  // ~15% of valuation as revenue
@@ -377,6 +383,17 @@ class VentureManager: ObservableObject {
         }
     }
     
+    /// Format currency compactly
+    private func formatCompact(_ value: Double) -> String {
+        switch value {
+        case 1_000_000_000_000...: return String(format: "$%.1fT", value / 1_000_000_000_000)
+        case 1_000_000_000...: return String(format: "$%.1fB", value / 1_000_000_000)
+        case 1_000_000...: return String(format: "$%.1fM", value / 1_000_000)
+        case 1_000...: return String(format: "$%.1fK", value / 1_000)
+        default: return "$\(Int(value))"
+        }
+    }
+    
     /// Check if player has reached max career (unlocks ventures)
     func checkVentureUnlock(careerRoleIndex: Int, careerRolesCount: Int) {
         // Max career = last role (index == count - 1)
@@ -460,6 +477,33 @@ class VentureManager: ObservableObject {
         state.totalVentureProfit
     }
     
+    /// Get total revenue from all active ventures
+    var totalVentureRevenue: Double {
+        state.ventures.filter { $0.isActive }.reduce(0) { $0 + $1.yearlyRevenue }
+    }
+    
+    /// Take a venture public (IPO)
+    func takeVenturePublic(id: String, sharesOffered: Double, ipoValuation: Double) {
+        guard let index = state.ventures.firstIndex(where: { $0.id == id }) else { return }
+        
+        state.ventures[index].isPublic = true
+        state.ventures[index].valuation = ipoValuation
+        state.ventures[index].ownershipPercent = 1.0 - sharesOffered
+        state.ventures[index].stockPrice = ipoValuation / state.ventures[index].sharesOutstanding
+        save()
+    }
+    
+    /// Update stock prices based on market sentiment
+    func updateStockPrices(marketSentiment: Double) {
+        for i in 0..<state.ventures.count where state.ventures[i].isPublic {
+            let volatility = Double.random(in: -0.05...0.05)
+            let sentimentEffect = (marketSentiment - 0.5) * 0.1
+            state.ventures[i].stockPrice *= (1 + volatility + sentimentEffect)
+            state.ventures[i].valuation = state.ventures[i].stockPrice * state.ventures[i].sharesOutstanding
+        }
+        save()
+    }
+    
     /// Invest more money in an existing venture
     func investInVenture(id: String, amount: Double) -> Bool {
         guard let index = state.ventures.firstIndex(where: { $0.id == id }) else { return false }
@@ -481,7 +525,7 @@ class VentureManager: ObservableObject {
         
         NewsFeedManager.shared.addNews(
             category: .personal,
-            headline: "💰 EXIT! Sold \(venture.name) for \(GameState.formatCompact(salePrice))!"
+            headline: "💰 EXIT! Sold \(venture.name) for \(formatCompact(salePrice))!"
         )
         
         return salePrice
@@ -552,6 +596,39 @@ struct Billionaire: Identifiable {
     static let trillionGoal: Double = 1_000_000_000_000  // $1 Trillion
 }
 
+// MARK: - Company Location (for expansion)
+struct CompanyLocation: Codable, Identifiable {
+    var id: String = UUID().uuidString
+    var name: String
+    var type: String  // "headquarters", "datacenter", "office", "factory", "lab"
+    var city: String
+    var employees: Int = 0
+    var maxEmployees: Int = 100
+    var buildCost: Double = 0  // Original build cost (asset value)
+    var operatingCost: Double = 50_000  // Monthly cost
+    var revenueMultiplier: Double = 1.0  // How much this location boosts revenue
+    
+    /// Asset value appreciates 50% above build cost
+    var assetValue: Double {
+        buildCost * 1.5
+    }
+    
+    var icon: String {
+        switch type {
+        case "headquarters": return "🏢"
+        case "datacenter": return "🖥️"
+        case "office": return "🏠"
+        case "factory": return "🏭"
+        case "lab": return "🔬"
+        default: return "📍"
+        }
+    }
+    
+    var monthlyCost: Double {
+        operatingCost + (Double(employees) * 5000)  // Base + per employee
+    }
+}
+
 // MARK: - Company State
 struct CompanyState: Codable {
     var name: String = "My Company"
@@ -565,8 +642,19 @@ struct CompanyState: Codable {
     var tradeDealsCompleted: Int = 0
     var acquisitions: Int = 0
     
+    // Locations / Expansion
+    var locations: [CompanyLocation] = []
+    
     // Department System
     var departmentState: DepartmentState = DepartmentState()
+    
+    var totalLocations: Int {
+        locations.count
+    }
+    
+    var datacenterCount: Int {
+        locations.filter { $0.type == "datacenter" }.count
+    }
     
     // Maximum valuation cap to prevent overflow bugs
     static let maxValuation: Double = 5_000_000_000_000 // $5 trillion cap
@@ -674,6 +762,129 @@ class CompanyManager: ObservableObject {
         state.acquisitions += 1
         state.totalCapitalRaised += value * 0.1  // 10% of acquisition adds to capital
         updateValuation()
+    }
+    
+    // MARK: - Sell Company
+    
+    /// Calculate sale price based on valuation and multipliers
+    var salePrice: Double {
+        var price = state.companyValuation
+        
+        // Premium for more employees (larger companies are worth more)
+        let employeeMultiplier = 1.0 + min(Double(state.totalEmployees) / 1000, 0.5)  // Up to 50% bonus
+        price *= employeeMultiplier
+        
+        // Premium for multiple locations
+        let locationMultiplier = 1.0 + (Double(state.locations.count) * 0.1)  // 10% per location
+        price *= locationMultiplier
+        
+        // Premium for industries
+        let industryMultiplier = 1.0 + (Double(state.industries.count) * 0.05)  // 5% per industry
+        price *= industryMultiplier
+        
+        return price
+    }
+    
+    /// Sell the company and return cash to player
+    /// Returns the sale price
+    func sellCompany() -> Double {
+        let price = salePrice
+        
+        // Reset company state
+        state = CompanyState()
+        
+        return price
+    }
+    
+    // MARK: - Expansion / Locations
+    
+    /// Available location types based on company industry
+    var availableLocationTypes: [(type: String, name: String, cost: Double, employeesRequired: Int)] {
+        guard let industry = state.companyType else { return [] }
+        
+        switch industry {
+        case .dataCenters:
+            return [
+                ("datacenter", "Data Center", 5_000_000, 50),
+                ("office", "Regional Office", 500_000, 10)
+            ]
+        case .software, .ai:
+            return [
+                ("office", "Dev Office", 1_000_000, 20),
+                ("datacenter", "Cloud Infrastructure", 10_000_000, 75),
+                ("lab", "R&D Lab", 3_000_000, 30)
+            ]
+        case .space:
+            return [
+                ("factory", "Manufacturing Facility", 50_000_000, 200),
+                ("lab", "Launch Facility", 100_000_000, 150),
+                ("office", "Mission Control", 10_000_000, 50)
+            ]
+        case .biotech:
+            return [
+                ("lab", "Research Lab", 5_000_000, 40),
+                ("factory", "Production Facility", 20_000_000, 100)
+            ]
+        case .automotive:
+            return [
+                ("factory", "Gigafactory", 30_000_000, 500),
+                ("office", "Design Studio", 5_000_000, 30)
+            ]
+        default:
+            return [
+                ("office", "Office", 500_000, 10),
+                ("factory", "Facility", 5_000_000, 50)
+            ]
+        }
+    }
+    
+    /// Cities available for expansion
+    static let expansionCities = [
+        "San Francisco", "Austin", "Seattle", "New York", "Boston",
+        "London", "Berlin", "Singapore", "Tokyo", "Dublin"
+    ]
+    
+    /// Check if we have enough employees to support a new location
+    func canExpandLocation(employeesRequired: Int) -> Bool {
+        // Need at least the required employees, plus 20% buffer for existing operations
+        let available = state.totalEmployees
+        let needed = state.locations.reduce(0) { $0 + $1.employees } + employeesRequired
+        return available >= needed
+    }
+    
+    /// Add a new location
+    func addLocation(type: String, name: String, city: String, cost: Double, maxEmployees: Int) -> Bool {
+        let location = CompanyLocation(
+            name: name,
+            type: type,
+            city: city,
+            employees: 0,
+            maxEmployees: maxEmployees,
+            buildCost: cost,  // Store original build cost as asset value
+            operatingCost: cost / 100,  // Monthly operating cost is 1% of build cost
+            revenueMultiplier: type == "datacenter" ? 1.5 : (type == "factory" ? 1.3 : 1.1)
+        )
+        
+        state.locations.append(location)
+        updateValuation()
+        save()  // Save immediately so asset value persists
+        return true
+    }
+    
+    /// Get total revenue multiplier from all locations
+    var locationRevenueMultiplier: Double {
+        guard !state.locations.isEmpty else { return 1.0 }
+        return state.locations.reduce(1.0) { $0 * $1.revenueMultiplier }
+    }
+    
+    /// Get monthly operating costs for all locations
+    var totalLocationCosts: Double {
+        state.locations.reduce(0) { $0 + $1.monthlyCost }
+    }
+    
+    /// Get total asset value of all locations (buildings appreciate 50%)
+    var totalAssetValue: Double {
+        state.locations.reduce(0) { $0 + $1.assetValue }
     }
     
     // MARK: - Department Actions
@@ -929,11 +1140,14 @@ class CompanyManager: ObservableObject {
         // Department bonus: specialized employees are worth more
         let deptBonus = Double(state.departmentState.totalDepartmentEmployees) * 50_000
         
+        // Location/Asset value: buildings appreciate to 1.5x their build cost
+        let locationValue = state.locations.reduce(0.0) { $0 + $1.assetValue }
+        
         // Cap capital raised to prevent overflow
         let cappedCapital = min(state.totalCapitalRaised, 10_000_000_000) // $10B cap
         let capitalMultiplier = 1 + (cappedCapital / 100_000_000)
         
-        let rawValuation = (employeeValue + industryValue + dealValue + acquisitionValue + deptBonus) * capitalMultiplier
+        let rawValuation = (employeeValue + industryValue + dealValue + acquisitionValue + deptBonus + locationValue) * capitalMultiplier
         
         // Apply hard cap to prevent overflow bugs
         state.companyValuation = min(rawValuation, CompanyState.maxValuation)

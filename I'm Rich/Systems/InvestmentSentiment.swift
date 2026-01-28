@@ -571,9 +571,12 @@ class InvestmentSentimentManager: ObservableObject {
     private func startAutoUpdate() {
         // Update sentiments every game year (5 minutes real time)
         // But we'll do it more frequently for gameplay - every 30 seconds
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
             self?.randomlyUpdateSentiments()
         }
+        // Add to .common mode so it continues during scrolling
+        RunLoop.main.add(timer, forMode: .common)
+        updateTimer = timer
     }
     
     private func randomlyUpdateSentiments() {

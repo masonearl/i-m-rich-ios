@@ -2,11 +2,92 @@
 //  ThemeManager.swift
 //  I'm Rich
 //
-//  Unlockable color themes and cosmetic progression
+//  Robinhood Gold-inspired color palette with matte greens and blues
 //
 
 import SwiftUI
 import Combine
+
+// MARK: - App Color Palette (Robinhood Gold Inspired)
+/// Centralized color system for consistent, polished UI
+struct AppColors {
+    // MARK: - Primary Palette (Matte Greens)
+    static let primaryGreen = Color(hex: "#00C805")      // Robinhood signature green
+    static let mattGreen = Color(hex: "#1DB954")         // Spotify-like matte green
+    static let darkGreen = Color(hex: "#0A8043")         // Deep forest green
+    static let softGreen = Color(hex: "#21CE99")         // Teal-green (gains)
+    
+    // MARK: - Secondary Palette (Matte Blues)
+    static let primaryBlue = Color(hex: "#5AC8FA")       // Sky blue
+    static let mattBlue = Color(hex: "#4A90D9")          // Calm matte blue
+    static let deepBlue = Color(hex: "#2563EB")          // Royal blue
+    static let navyBlue = Color(hex: "#1E3A5F")          // Dark navy
+    
+    // MARK: - Neutral Palette (Dark Mode)
+    static let background = Color(hex: "#0D0D0D")        // Near black
+    static let cardBackground = Color(hex: "#1A1A1A")    // Dark card
+    static let surfaceLight = Color(hex: "#2D2D2D")      // Elevated surface
+    static let border = Color(hex: "#3D3D3D")            // Subtle border
+    
+    // MARK: - Text Colors
+    static let textPrimary = Color.white
+    static let textSecondary = Color(hex: "#9CA3AF")     // Gray-400
+    static let textMuted = Color(hex: "#6B7280")         // Gray-500
+    
+    // MARK: - Semantic Colors
+    static let positive = Color(hex: "#21CE99")          // Gains green
+    static let negative = Color(hex: "#F45385")          // Losses pink
+    static let warning = Color(hex: "#FFB020")           // Warning amber
+    static let info = Color(hex: "#5AC8FA")              // Info blue
+    
+    // MARK: - Accent Colors
+    static let gold = Color(hex: "#F5A623")              // Gold accent
+    static let purple = Color(hex: "#8B5CF6")            // Premium purple
+    static let coral = Color(hex: "#FF6B6B")             // Coral red
+}
+
+// MARK: - Reusable Styles
+extension View {
+    /// Standard card background with subtle border
+    func cardStyle() -> some View {
+        self
+            .background(AppColors.cardBackground)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(AppColors.border, lineWidth: 0.5)
+            )
+    }
+    
+    /// Subtle card for nested content
+    func innerCardStyle() -> some View {
+        self
+            .background(AppColors.surfaceLight.opacity(0.5))
+            .cornerRadius(8)
+    }
+    
+    /// Primary action button style
+    func primaryButtonStyle() -> some View {
+        self
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(.black)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(AppColors.mattGreen)
+            .cornerRadius(8)
+    }
+    
+    /// Secondary button style
+    func secondaryButtonStyle() -> some View {
+        self
+            .font(.system(size: 12, weight: .medium))
+            .foregroundColor(AppColors.textPrimary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(AppColors.surfaceLight)
+            .cornerRadius(6)
+    }
+}
 
 // MARK: - App Theme
 struct AppTheme: Identifiable, Codable {
@@ -32,39 +113,39 @@ struct AppTheme: Identifiable, Codable {
     }
 }
 
-// MARK: - All Themes
+// MARK: - All Themes (Robinhood Gold Inspired)
 let allThemes: [AppTheme] = [
     AppTheme(
         id: "default",
-        name: "Wealth Green",
+        name: "Robinhood",
         icon: "💚",
-        primaryColorHex: "#66B366",
-        secondaryColorHex: "#4D994D",
-        accentColorHex: "#66B366",
+        primaryColorHex: "#21CE99",      // Matte teal-green
+        secondaryColorHex: "#1DB954",
+        accentColorHex: "#21CE99",
         unlockCondition: "Default theme",
         unlocked: true
     ),
     AppTheme(
         id: "gold_rush",
-        name: "Gold Rush",
+        name: "Gold",
         icon: "🏆",
-        primaryColorHex: "#FFD700",
-        secondaryColorHex: "#DAA520",
-        accentColorHex: "#FFD700",
+        primaryColorHex: "#F5A623",
+        secondaryColorHex: "#D4920A",
+        accentColorHex: "#F5A623",
         unlockCondition: "Earn $1,000,000 total"
     ),
     AppTheme(
         id: "wall_street",
         name: "Wall Street",
         icon: "📊",
-        primaryColorHex: "#4169E1",
-        secondaryColorHex: "#1E3A8A",
-        accentColorHex: "#4169E1",
+        primaryColorHex: "#4A90D9",      // Matte blue
+        secondaryColorHex: "#2563EB",
+        accentColorHex: "#4A90D9",
         unlockCondition: "Choose Finance career"
     ),
     AppTheme(
         id: "tech_startup",
-        name: "Tech Startup",
+        name: "Tech",
         icon: "💻",
         primaryColorHex: "#8B5CF6",
         secondaryColorHex: "#6D28D9",
@@ -73,7 +154,7 @@ let allThemes: [AppTheme] = [
     ),
     AppTheme(
         id: "creator_mode",
-        name: "Creator Mode",
+        name: "Creator",
         icon: "🎨",
         primaryColorHex: "#EC4899",
         secondaryColorHex: "#BE185D",
