@@ -604,8 +604,14 @@ struct CompanyLocation: Codable, Identifiable {
     var city: String
     var employees: Int = 0
     var maxEmployees: Int = 100
+    var buildCost: Double = 0  // Original build cost (asset value)
     var operatingCost: Double = 50_000  // Monthly cost
     var revenueMultiplier: Double = 1.0  // How much this location boosts revenue
+    
+    /// Asset value appreciates 50% above build cost
+    var assetValue: Double {
+        buildCost * 1.5
+    }
     
     var icon: String {
         switch type {
@@ -854,12 +860,14 @@ class CompanyManager: ObservableObject {
             city: city,
             employees: 0,
             maxEmployees: maxEmployees,
+            buildCost: cost,  // Store original build cost as asset value
             operatingCost: cost / 100,  // Monthly operating cost is 1% of build cost
             revenueMultiplier: type == "datacenter" ? 1.5 : (type == "factory" ? 1.3 : 1.1)
         )
         
         state.locations.append(location)
         updateValuation()
+        save()  // Save immediately so asset value persists
         return true
     }
     
@@ -872,6 +880,11 @@ class CompanyManager: ObservableObject {
     /// Get monthly operating costs for all locations
     var totalLocationCosts: Double {
         state.locations.reduce(0) { $0 + $1.monthlyCost }
+    }
+    
+    /// Get total asset value of all locations (buildings appreciate 50%)
+    var totalAssetValue: Double {
+        state.locations.reduce(0) { $0 + $1.assetValue }
     }
     
     // MARK: - Department Actions
@@ -1127,11 +1140,14 @@ class CompanyManager: ObservableObject {
         // Department bonus: specialized employees are worth more
         let deptBonus = Double(state.departmentState.totalDepartmentEmployees) * 50_000
         
+        // Location/Asset value: buildings appreciate to 1.5x their build cost
+        let locationValue = state.locations.reduce(0.0) { $0 + $1.assetValue }
+        
         // Cap capital raised to prevent overflow
         let cappedCapital = min(state.totalCapitalRaised, 10_000_000_000) // $10B cap
         let capitalMultiplier = 1 + (cappedCapital / 100_000_000)
         
-        let rawValuation = (employeeValue + industryValue + dealValue + acquisitionValue + deptBonus) * capitalMultiplier
+        let rawValuation = (employeeValue + industryValue + dealValue + acquisitionValue + deptBonus + locationValue) * capitalMultiplier
         
         // Apply hard cap to prevent overflow bugs
         state.companyValuation = min(rawValuation, CompanyState.maxValuation)
