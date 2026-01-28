@@ -83,7 +83,7 @@ struct ContentView: View {
             // Birthday alert overlay
             if lifecycle.showBirthdayAlert && !lifecycle.showDeathAlert {
                 Color.black.opacity(0.7).ignoresSafeArea()
-                BirthdayAlertView(age: lifecycle.currentAge) {
+                BirthdayAlertView(age: lifecycle.currentAge, netWorth: game.netWorth) {
                     lifecycle.dismissBirthdayAlert()
                 }
                 .transition(.scale.combined(with: .opacity))

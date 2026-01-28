@@ -248,10 +248,17 @@ class LifeCycleManager: ObservableObject {
 // MARK: - Birthday Alert View
 struct BirthdayAlertView: View {
     let age: Int
+    let netWorth: Double
     let onDismiss: () -> Void
     
     @State private var scale: CGFloat = 0.5
     @State private var opacity: Double = 0
+    
+    private let prestigeThreshold: Double = 1_000_000_000
+    
+    var canPrestige: Bool {
+        netWorth >= prestigeThreshold
+    }
     
     var body: some View {
         VStack(spacing: 16) {
@@ -267,10 +274,17 @@ struct BirthdayAlertView: View {
                 .font(.system(size: 16))
                 .foregroundColor(.gray)
             
-            if age >= LifeCycleConstants.retirementEligibleAge {
+            // Only show retirement message if they can actually prestige ($1B+)
+            if canPrestige {
                 Text("You can now retire and start a new life!")
                     .font(.system(size: 12))
                     .foregroundColor(.yellow)
+                    .multilineTextAlignment(.center)
+            } else if age >= LifeCycleConstants.retirementEligibleAge {
+                // They're old enough but don't have the money
+                Text("Reach $1B to unlock prestige")
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
             }
             
