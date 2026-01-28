@@ -4142,7 +4142,7 @@ struct InvestmentDetailSheet: View {
     }
 }
 
-// MARK: - New Venture Sheet
+// MARK: - New Venture Sheet (Compact)
 struct NewVentureSheet: View {
     @ObservedObject var game: GameState
     @Environment(\.dismiss) var dismiss
@@ -4153,7 +4153,6 @@ struct NewVentureSheet: View {
     @State private var selectedIndustry: Industry?
     @State private var investmentAmount: Double = 100_000
     
-    // Filter to venture-specific industries
     var availableIndustries: [Industry] {
         Industry.allCases.filter { $0.isVentureIndustry && game.cash >= $0.entryThreshold }
     }
@@ -4164,156 +4163,119 @@ struct NewVentureSheet: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Text("🚀")
-                            .font(.system(size: 50))
-                        Text("Start a New Venture")
-                            .font(.title2.bold())
-                            .foregroundColor(.white)
-                        Text("Build your empire by launching companies in different industries.")
-                            .font(.caption)
-                            .foregroundColor(AppColors.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                    
-                    // Company Name
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("COMPANY NAME")
-                            .font(.caption.bold())
-                            .foregroundColor(AppColors.textMuted)
-                        
-                        TextField("Enter company name...", text: $ventureName)
-                            .padding(12)
-                            .background(Color.white)
-                            .foregroundColor(.black)
-                            .cornerRadius(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(AppColors.border, lineWidth: 1)
-                            )
-                    }
-                    .padding()
-                    .cardStyle()
-                    
-                    // Industry Selection
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("SELECT INDUSTRY")
-                            .font(.caption.bold())
-                            .foregroundColor(AppColors.textMuted)
-                        
-                        if availableIndustries.isEmpty {
-                            Text("You need more cash to enter any industry. Keep hustling!")
-                                .font(.caption)
-                                .foregroundColor(AppColors.warning)
-                                .padding()
-                        } else {
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                                ForEach(availableIndustries, id: \.self) { industry in
-                                    IndustryCard(
-                                        industry: industry,
-                                        isSelected: selectedIndustry == industry,
-                                        canAfford: game.cash >= industry.entryThreshold
-                                    ) {
-                                        selectedIndustry = industry
-                                        investmentAmount = industry.entryThreshold
-                                    }
-                                }
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 12) {
+                        // Compact header
+                        HStack(spacing: 10) {
+                            Text("🚀").font(.system(size: 28))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("New Venture").font(.headline.bold()).foregroundColor(.white)
+                                Text("Cash: \(game.formatCompact(game.cash))")
+                                    .font(.caption).foregroundColor(AppColors.mattGreen)
                             }
+                            Spacer()
                         }
-                    }
-                    .padding()
-                    .cardStyle()
-                    
-                    // Investment Amount
-                    if let industry = selectedIndustry {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("INITIAL INVESTMENT")
-                                .font(.caption.bold())
-                                .foregroundColor(AppColors.textMuted)
-                            
-                            HStack {
-                                Text("Min: \(game.formatCompact(industry.entryThreshold))")
-                                    .font(.caption)
-                                    .foregroundColor(AppColors.textSecondary)
-                                Spacer()
-                                Text("Your cash: \(game.formatCompact(game.cash))")
-                                    .font(.caption)
-                                    .foregroundColor(AppColors.mattGreen)
-                            }
-                            
-                            // Quick amounts
-                            HStack(spacing: 8) {
-                                ForEach([1.0, 2.0, 5.0, 10.0], id: \.self) { multiplier in
-                                    let amount = industry.entryThreshold * multiplier
-                                    if game.cash >= amount {
-                                        Button(action: { investmentAmount = amount }) {
-                                            Text(game.formatCompact(amount))
-                                                .font(.caption.bold())
-                                                .foregroundColor(investmentAmount == amount ? .black : .white)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                                .background(investmentAmount == amount ? AppColors.mattGreen : AppColors.surfaceLight)
-                                                .cornerRadius(8)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                    }
-                                }
-                            }
-                        }
-                        .padding()
-                        .cardStyle()
-                    }
-                    
-                    // Start Button
-                    Button(action: startVenture) {
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        
+                        // Company Name (inline)
                         HStack {
-                            Text("🚀")
-                            Text("Launch \(ventureName.isEmpty ? "Venture" : ventureName)")
-                                .font(.headline.bold())
+                            TextField("Company name", text: $ventureName)
+                                .padding(10)
+                                .background(Color.white)
+                                .foregroundColor(.black)
+                                .cornerRadius(8)
                         }
+                        .padding(.horizontal)
+                        
+                        // Industry grid (compact)
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                            ForEach(availableIndustries, id: \.self) { industry in
+                                Button(action: {
+                                    selectedIndustry = industry
+                                    investmentAmount = industry.entryThreshold
+                                }) {
+                                    VStack(spacing: 4) {
+                                        Text(industry.icon).font(.system(size: 22))
+                                        Text(industry.rawValue)
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(selectedIndustry == industry ? .black : .white)
+                                            .lineLimit(1)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(selectedIndustry == industry ? AppColors.mattGreen : AppColors.surfaceLight)
+                                    .cornerRadius(8)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding(.horizontal)
+                        
+                        // Investment quick picks
+                        if let industry = selectedIndustry {
+                            VStack(spacing: 6) {
+                                Text("INVESTMENT").font(.system(size: 9, weight: .bold)).foregroundColor(AppColors.textMuted)
+                                HStack(spacing: 6) {
+                                    ForEach([1.0, 2.0, 5.0], id: \.self) { mult in
+                                        let amt = industry.entryThreshold * mult
+                                        if game.cash >= amt {
+                                            Button(action: { investmentAmount = amt }) {
+                                                Text(game.formatCompact(amt))
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(investmentAmount == amt ? .black : .white)
+                                                    .padding(.horizontal, 10)
+                                                    .padding(.vertical, 6)
+                                                    .background(investmentAmount == amt ? AppColors.mattGreen : AppColors.surfaceLight)
+                                                    .cornerRadius(6)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                    .padding(.bottom, 80)
+                }
+                
+                // Fixed bottom button
+                Button(action: startVenture) {
+                    Text(canStart ? "🚀 Launch \(ventureName)" : "Enter name & select industry")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(canStart ? .black : AppColors.textMuted)
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(.vertical, 14)
                         .background(canStart ? AppColors.mattGreen : AppColors.surfaceLight)
-                        .cornerRadius(12)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(!canStart)
-                    .padding(.top)
+                        .cornerRadius(10)
                 }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(!canStart)
                 .padding()
+                .background(AppColors.background)
             }
             .background(AppColors.background.ignoresSafeArea())
-            .navigationTitle("New Venture")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(AppColors.textSecondary)
+                    Button("✕") { dismiss() }.foregroundColor(.gray)
                 }
             }
         }
+        .presentationDetents([.medium, .large])
         .preferredColorScheme(.dark)
     }
     
     private func startVenture() {
         guard let industry = selectedIndustry else { return }
-        
-        // Deduct cash
         game.cash -= investmentAmount
-        
-        // Create venture
         let _ = ventureManager.startVenture(
-            name: ventureName,
-            industry: industry,
+            name: ventureName, industry: industry,
             initialInvestment: investmentAmount,
             currentYear: lifecycle.gameYearsPassed + lifecycle.startingAge
         )
-        
         dismiss()
     }
 }
@@ -4768,7 +4730,7 @@ struct PrestigeSheet: View {
     }
 }
 
-// MARK: - Expand Company Sheet
+// MARK: - Expand Company Sheet (Compact)
 struct ExpandCompanySheet: View {
     @ObservedObject var game: GameState
     @Environment(\.dismiss) var dismiss
@@ -4780,167 +4742,141 @@ struct ExpandCompanySheet: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    expandSheetHeader
-                    expandSheetStats
-                    expandLocationTypesList
-                    expandCitySelection
-                    expandBuildButton
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 12) {
+                        // Compact header
+                        HStack(spacing: 10) {
+                            Text("🏗️").font(.system(size: 28))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Expand Empire").font(.headline.bold()).foregroundColor(.white)
+                                HStack(spacing: 8) {
+                                    Text("👥 \(companyManager.state.totalEmployees)").font(.caption)
+                                    Text("📍 \(companyManager.state.locations.count)").font(.caption)
+                                    Text("💰 \(game.formatCompact(game.cash))").font(.caption).foregroundColor(AppColors.mattGreen)
+                                }
+                                .foregroundColor(AppColors.textSecondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        
+                        // Location types (compact grid)
+                        if !companyManager.availableLocationTypes.isEmpty {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                                ForEach(companyManager.availableLocationTypes, id: \.type) { locType in
+                                    let canAfford = game.cash >= locType.cost
+                                    let hasStaff = companyManager.canExpandLocation(employeesRequired: locType.employeesRequired)
+                                    let isSelected = selectedType?.type == locType.type
+                                    
+                                    Button(action: { selectedType = locType }) {
+                                        VStack(spacing: 4) {
+                                            Text(locTypeIcon(locType.type)).font(.system(size: 20))
+                                            Text(locType.name)
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(isSelected ? .black : (canAfford ? .white : AppColors.textMuted))
+                                            Text(game.formatCompact(locType.cost))
+                                                .font(.system(size: 9))
+                                                .foregroundColor(isSelected ? .black.opacity(0.7) : (canAfford ? AppColors.mattGreen : AppColors.warning))
+                                            if !hasStaff {
+                                                Text("Need \(locType.employeesRequired) staff")
+                                                    .font(.system(size: 7))
+                                                    .foregroundColor(AppColors.warning)
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(isSelected ? AppColors.mattGreen : AppColors.surfaceLight)
+                                        .cornerRadius(8)
+                                        .opacity(canAfford && hasStaff ? 1.0 : 0.6)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .disabled(!canAfford || !hasStaff)
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // City selection (horizontal scroll)
+                        if selectedType != nil {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("CITY").font(.system(size: 9, weight: .bold)).foregroundColor(AppColors.textMuted).padding(.horizontal)
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        ForEach(CompanyManager.expansionCities, id: \.self) { city in
+                                            Button(action: { selectedCity = city }) {
+                                                Text(city)
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(selectedCity == city ? .black : .white)
+                                                    .padding(.horizontal, 12)
+                                                    .padding(.vertical, 8)
+                                                    .background(selectedCity == city ? AppColors.mattGreen : AppColors.surfaceLight)
+                                                    .cornerRadius(6)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.bottom, 80)
                 }
-                .padding()
+                
+                // Fixed bottom button
+                if let locType = selectedType {
+                    let canBuild = game.cash >= locType.cost && companyManager.canExpandLocation(employeesRequired: locType.employeesRequired)
+                    Button(action: { showConfirmation = true }) {
+                        Text("🏗️ Build \(locType.name) in \(selectedCity)")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(canBuild ? .black : AppColors.textMuted)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(canBuild ? AppColors.mattGreen : AppColors.surfaceLight)
+                            .cornerRadius(10)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(!canBuild)
+                    .padding()
+                    .background(AppColors.background)
+                }
             }
             .background(AppColors.background.ignoresSafeArea())
-            .navigationTitle("Expand")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(AppColors.textSecondary)
+                    Button("✕") { dismiss() }.foregroundColor(.gray)
                 }
             }
-            .alert("Confirm Expansion", isPresented: $showConfirmation) {
+            .alert("Build Location?", isPresented: $showConfirmation) {
                 Button("Cancel", role: .cancel) { }
                 Button("Build") { handleBuildLocation() }
             } message: {
                 if let locType = selectedType {
-                    Text("Build \(locType.name) in \(selectedCity) for \(game.formatCompact(locType.cost))?")
+                    Text("\(locType.name) in \(selectedCity) for \(game.formatCompact(locType.cost))")
                 }
             }
         }
+        .presentationDetents([.medium, .large])
         .preferredColorScheme(.dark)
     }
     
-    private var expandSheetHeader: some View {
-        VStack(spacing: 8) {
-            Text("🏗️").font(.system(size: 50))
-            Text("EXPAND YOUR EMPIRE")
-                .font(.system(size: 20, weight: .black))
-                .foregroundColor(.white)
-                .tracking(2)
-            Text("Open new locations to increase revenue and capacity")
-                .font(.subheadline)
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.top, 20)
-    }
-    
-    private var expandSheetStats: some View {
-        HStack(spacing: 16) {
-            expandStatBox(icon: "👥", label: "Employees", value: "\(companyManager.state.totalEmployees)")
-            expandStatBox(icon: "📍", label: "Locations", value: "\(companyManager.state.locations.count)")
-            expandStatBox(icon: "💰", label: "Cash", value: game.formatCompact(game.cash))
-        }
-    }
-    
-    private func expandStatBox(icon: String, label: String, value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(icon).font(.title2)
-            Text(value).font(.subheadline.bold()).foregroundColor(.white)
-            Text(label).font(.caption2).foregroundColor(AppColors.textMuted)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(AppColors.surfaceLight)
-        .cornerRadius(10)
-    }
-    
-    private var expandLocationTypesList: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("CHOOSE LOCATION TYPE").font(.caption.bold()).foregroundColor(AppColors.textMuted)
-            
-            if companyManager.availableLocationTypes.isEmpty {
-                Text("Found a company first to unlock expansion options")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.textSecondary)
-                    .padding()
-            } else {
-                ForEach(companyManager.availableLocationTypes, id: \.type) { locType in
-                    LocationTypeRow(
-                        type: locType.type,
-                        name: locType.name,
-                        cost: locType.cost,
-                        employeesRequired: locType.employeesRequired,
-                        canAfford: game.cash >= locType.cost,
-                        hasEmployees: companyManager.canExpandLocation(employeesRequired: locType.employeesRequired),
-                        isSelected: selectedType?.type == locType.type,
-                        game: game
-                    ) {
-                        selectedType = locType
-                    }
-                }
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var expandCitySelection: some View {
-        if selectedType != nil {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("CHOOSE CITY").font(.caption.bold()).foregroundColor(AppColors.textMuted)
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    ForEach(CompanyManager.expansionCities, id: \.self) { city in
-                        expandCityButton(city: city)
-                    }
-                }
-            }
-        }
-    }
-    
-    private func expandCityButton(city: String) -> some View {
-        let isSelected = selectedCity == city
-        return Button(action: { selectedCity = city }) {
-            Text(city)
-                .font(.subheadline)
-                .foregroundColor(isSelected ? .black : .white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 8).fill(isSelected ? AppColors.mattGreen : AppColors.surfaceLight))
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    @ViewBuilder
-    private var expandBuildButton: some View {
-        if let locType = selectedType {
-            let canBuild = game.cash >= locType.cost && companyManager.canExpandLocation(employeesRequired: locType.employeesRequired)
-            
-            Button(action: { if canBuild { showConfirmation = true } }) {
-                VStack(spacing: 4) {
-                    Text("BUILD \(locType.name.uppercased())").font(.headline.bold())
-                    Text("in \(selectedCity) for \(game.formatCompact(locType.cost))")
-                        .font(.caption)
-                        .foregroundColor(canBuild ? .black.opacity(0.7) : .gray)
-                }
-                .foregroundColor(canBuild ? .black : .gray)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(RoundedRectangle(cornerRadius: 12).fill(canBuild ? AppColors.mattGreen : AppColors.surfaceLight))
-            }
-            .buttonStyle(PlainButtonStyle())
-            .disabled(!canBuild)
-            
-            if !companyManager.canExpandLocation(employeesRequired: locType.employeesRequired) {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                    Text("Need \(locType.employeesRequired) more employees to staff this location").font(.caption)
-                }
-                .foregroundColor(AppColors.warning)
-            }
+    private func locTypeIcon(_ type: String) -> String {
+        switch type {
+        case "datacenter": return "🖥️"
+        case "office": return "🏠"
+        case "factory": return "🏭"
+        case "lab": return "🔬"
+        default: return "📍"
         }
     }
     
     private func handleBuildLocation() {
         guard let locType = selectedType else { return }
         game.cash -= locType.cost
-        _ = companyManager.addLocation(
-            type: locType.type,
-            name: locType.name,
-            city: selectedCity,
-            cost: locType.cost,
-            maxEmployees: locType.employeesRequired * 2
-        )
+        _ = companyManager.addLocation(type: locType.type, name: locType.name, city: selectedCity, cost: locType.cost, maxEmployees: locType.employeesRequired * 2)
         NewsFeedManager.shared.addNews(category: .markets, headline: "🏗️ NEW LOCATION - Opened \(locType.name) in \(selectedCity)!")
         dismiss()
     }
@@ -5665,122 +5601,119 @@ struct VenturePortfolioRow: View {
     }
 }
 
-// MARK: - IPO Sheet
+// MARK: - IPO Sheet (Compact)
 struct IPOSheet: View {
     let venture: Venture
     @ObservedObject var game: GameState
     @Environment(\.dismiss) var dismiss
     @ObservedObject private var ventureManager = VentureManager.shared
-    @State private var sharesOffered: Double = 0.2  // 20% default
+    @State private var sharesOffered: Double = 0.2
     @State private var showConfirmation = false
     
-    var ipoValuation: Double {
-        venture.valuation * 1.5  // IPO premium
-    }
-    
-    var proceedsFromIPO: Double {
-        ipoValuation * sharesOffered
-    }
+    var ipoValuation: Double { venture.valuation * 1.5 }
+    var proceedsFromIPO: Double { ipoValuation * sharesOffered }
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Text("📈").font(.system(size: 50))
-                        Text("TAKE \(venture.name.uppercased()) PUBLIC")
-                            .font(.system(size: 18, weight: .black))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                        Text("Sell shares to raise capital and unlock stock trading")
-                            .font(.caption)
+            VStack(spacing: 0) {
+                VStack(spacing: 12) {
+                    // Compact header
+                    HStack(spacing: 10) {
+                        Text("📈").font(.system(size: 28))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("IPO: \(venture.name)").font(.headline.bold()).foregroundColor(.white)
+                            HStack(spacing: 8) {
+                                Text("Value: \(game.formatCompact(venture.valuation))").font(.caption)
+                                Text("→").font(.caption).foregroundColor(AppColors.textMuted)
+                                Text("\(game.formatCompact(ipoValuation))").font(.caption).foregroundColor(AppColors.mattGreen)
+                            }
                             .foregroundColor(AppColors.textSecondary)
-                            .multilineTextAlignment(.center)
+                        }
+                        Spacer()
                     }
-                    .padding(.top, 20)
+                    .padding(.horizontal)
+                    .padding(.top, 12)
                     
-                    // Company stats
-                    HStack(spacing: 16) {
-                        ipoStatBox(icon: "💰", label: "Current Value", value: game.formatCompact(venture.valuation))
-                        ipoStatBox(icon: "📈", label: "IPO Value", value: game.formatCompact(ipoValuation))
-                    }
-                    
-                    // Shares to offer
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("SHARES TO OFFER")
-                            .font(.caption.bold())
-                            .foregroundColor(AppColors.textMuted)
+                    // Shares slider
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Sell \(Int(sharesOffered * 100))%")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                            Spacer()
+                            Text("Keep \(Int((1 - sharesOffered) * 100))%")
+                                .font(.system(size: 12))
+                                .foregroundColor(AppColors.textSecondary)
+                        }
                         
                         Slider(value: $sharesOffered, in: 0.1...0.49, step: 0.05)
                             .accentColor(AppColors.mattGreen)
                         
-                        HStack {
-                            Text("\(Int(sharesOffered * 100))% of company")
-                                .font(.subheadline.bold())
-                                .foregroundColor(.white)
-                            Spacer()
-                            Text("You receive: \(game.formatCompact(proceedsFromIPO))")
-                                .font(.caption)
-                                .foregroundColor(AppColors.mattGreen)
+                        // Quick select buttons
+                        HStack(spacing: 8) {
+                            ForEach([0.1, 0.2, 0.3, 0.4], id: \.self) { pct in
+                                Button(action: { sharesOffered = pct }) {
+                                    Text("\(Int(pct * 100))%")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(sharesOffered == pct ? .black : .white)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(sharesOffered == pct ? AppColors.mattGreen : AppColors.surfaceLight)
+                                        .cornerRadius(6)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
                         }
-                        
-                        Text("You'll retain \(Int((1 - sharesOffered) * 100))% ownership")
+                    }
+                    .padding()
+                    .background(AppColors.surfaceLight)
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    
+                    // Proceeds preview
+                    HStack {
+                        Text("You receive")
                             .font(.caption)
                             .foregroundColor(AppColors.textSecondary)
+                        Spacer()
+                        Text(game.formatCompact(proceedsFromIPO))
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(AppColors.mattGreen)
                     }
-                    .padding()
-                    .cardStyle()
+                    .padding(.horizontal, 20)
                     
-                    // Benefits
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("IPO BENEFITS")
-                            .font(.caption.bold())
-                            .foregroundColor(AppColors.textMuted)
-                        
-                        benefitRow(icon: "💵", text: "Immediate cash from share sale")
-                        benefitRow(icon: "📊", text: "Stock price fluctuates with market")
-                        benefitRow(icon: "🔄", text: "Buy/sell your own shares anytime")
-                        benefitRow(icon: "🚀", text: "Higher valuation visibility")
-                    }
-                    .padding()
-                    .cardStyle()
-                    
-                    // Go Public button
-                    Button(action: { showConfirmation = true }) {
-                        HStack {
-                            Text("📈")
-                            Text("GO PUBLIC")
-                                .font(.headline.bold())
-                        }
+                    Spacer()
+                }
+                
+                // Fixed bottom button
+                Button(action: { showConfirmation = true }) {
+                    Text("📈 Go Public")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(.vertical, 14)
                         .background(AppColors.mattGreen)
-                        .cornerRadius(12)
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                        .cornerRadius(10)
                 }
+                .buttonStyle(PlainButtonStyle())
                 .padding()
+                .background(AppColors.background)
             }
             .background(AppColors.background.ignoresSafeArea())
-            .navigationTitle("IPO")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(AppColors.textSecondary)
+                    Button("✕") { dismiss() }.foregroundColor(.gray)
                 }
             }
             .alert("Confirm IPO", isPresented: $showConfirmation) {
                 Button("Cancel", role: .cancel) { }
-                Button("Go Public") {
-                    executeIPO()
-                }
+                Button("Go Public") { executeIPO() }
             } message: {
-                Text("Take \(venture.name) public at \(game.formatCompact(ipoValuation)) valuation? You'll receive \(game.formatCompact(proceedsFromIPO)) for \(Int(sharesOffered * 100))% of shares.")
+                Text("Sell \(Int(sharesOffered * 100))% of \(venture.name) for \(game.formatCompact(proceedsFromIPO))?")
             }
         }
+        .presentationDetents([.height(340)])
         .preferredColorScheme(.dark)
     }
     
@@ -5790,25 +5723,6 @@ struct IPOSheet: View {
         game.totalEarned += proceedsFromIPO
         NewsFeedManager.shared.addNews(category: .markets, headline: "📈 IPO SUCCESS! \(venture.name) goes public at \(game.formatCompact(ipoValuation)) valuation!")
         dismiss()
-    }
-    
-    private func ipoStatBox(icon: String, label: String, value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(icon).font(.title2)
-            Text(value).font(.subheadline.bold()).foregroundColor(.white)
-            Text(label).font(.caption2).foregroundColor(AppColors.textMuted)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(AppColors.surfaceLight)
-        .cornerRadius(10)
-    }
-    
-    private func benefitRow(icon: String, text: String) -> some View {
-        HStack(spacing: 8) {
-            Text(icon).font(.caption)
-            Text(text).font(.caption).foregroundColor(AppColors.textSecondary)
-        }
     }
 }
 
