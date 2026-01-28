@@ -436,6 +436,11 @@ class TaxManager: ObservableObject {
     func resetForPrestige() {
         state = TaxState()
     }
+    
+    /// Full reset (death or new game)
+    func reset() {
+        state = TaxState()
+    }
 }
 
 // MARK: - Tax Display View

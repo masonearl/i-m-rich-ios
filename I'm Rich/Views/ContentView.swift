@@ -81,10 +81,33 @@ struct ContentView: View {
             }
             
             // Birthday alert overlay
-            if lifecycle.showBirthdayAlert {
+            if lifecycle.showBirthdayAlert && !lifecycle.showDeathAlert {
                 Color.black.opacity(0.7).ignoresSafeArea()
                 BirthdayAlertView(age: lifecycle.currentAge) {
                     lifecycle.dismissBirthdayAlert()
+                }
+                .transition(.scale.combined(with: .opacity))
+            }
+            
+            // Death alert overlay - player died without prestiging
+            if lifecycle.showDeathAlert {
+                Color.black.opacity(0.9).ignoresSafeArea()
+                DeathAlertView(
+                    age: lifecycle.currentAge,
+                    yearsPlayed: lifecycle.gameYearsPassed,
+                    netWorth: game.netWorth,
+                    totalEarned: game.totalEarned
+                ) {
+                    // Restart the game from scratch (no prestige bonuses carried over)
+                    lifecycle.processDeath()
+                    lifecycle.fullReset()
+                    game.resetGame()
+                    // Reset all managers
+                    CompanyManager.shared.reset()
+                    VentureManager.shared.reset()
+                    FamilyManager.shared.reset()
+                    TaxManager.shared.reset()
+                    showOnboarding = true
                 }
                 .transition(.scale.combined(with: .opacity))
             }
