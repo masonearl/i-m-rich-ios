@@ -282,6 +282,10 @@ struct Venture: Identifiable, Codable {
     var revenue: Double
     var growthRate: Double  // Annual growth rate
     var isActive: Bool
+    var isPublic: Bool = false  // Has the company gone through IPO?
+    var stockPrice: Double = 0  // Price per share after IPO
+    var sharesOutstanding: Double = 1_000_000  // Total shares
+    var ownershipPercent: Double = 1.0  // Your ownership percentage
     
     /// Calculate yearly revenue based on valuation and industry
     var yearlyRevenue: Double {
@@ -471,6 +475,11 @@ class VentureManager: ObservableObject {
         state.totalVentureProfit
     }
     
+    /// Total revenue from all ventures
+    var totalVentureRevenue: Double {
+        state.ventures.filter { $0.isActive }.reduce(0) { $0 + $1.yearlyRevenue }
+    }
+    
     /// Invest more money in an existing venture
     func investInVenture(id: String, amount: Double) -> Bool {
         guard let index = state.ventures.firstIndex(where: { $0.id == id }) else { return false }
@@ -496,6 +505,55 @@ class VentureManager: ObservableObject {
         )
         
         return salePrice
+    }
+    
+    /// Take a venture public (IPO)
+    func takeVenturePublic(id: String, sharesOffered: Double, ipoValuation: Double) {
+        guard let index = state.ventures.firstIndex(where: { $0.id == id }) else { return }
+        
+        state.ventures[index].isPublic = true
+        state.ventures[index].valuation = ipoValuation
+        state.ventures[index].stockPrice = ipoValuation / state.ventures[index].sharesOutstanding
+        state.ventures[index].ownershipPercent = 1.0 - sharesOffered
+        save()
+    }
+    
+    /// Buy shares in a public venture you own
+    func buyShares(id: String, amount: Double) -> Bool {
+        guard let index = state.ventures.firstIndex(where: { $0.id == id && $0.isPublic }) else { return false }
+        
+        let venture = state.ventures[index]
+        let sharesToBuy = amount / venture.stockPrice
+        let maxSharesToBuy = venture.sharesOutstanding * (1.0 - venture.ownershipPercent)
+        
+        if sharesToBuy <= maxSharesToBuy {
+            state.ventures[index].ownershipPercent += sharesToBuy / venture.sharesOutstanding
+            save()
+            return true
+        }
+        return false
+    }
+    
+    /// Sell shares in a public venture you own
+    func sellShares(id: String, sharePercent: Double) -> Double {
+        guard let index = state.ventures.firstIndex(where: { $0.id == id && $0.isPublic }) else { return 0 }
+        
+        let venture = state.ventures[index]
+        let shareValue = venture.valuation * sharePercent * venture.ownershipPercent
+        state.ventures[index].ownershipPercent -= sharePercent * venture.ownershipPercent
+        save()
+        return shareValue
+    }
+    
+    /// Update stock prices based on market conditions
+    func updateStockPrices(marketSentiment: Double) {
+        for i in 0..<state.ventures.count where state.ventures[i].isPublic {
+            // Stock price fluctuates -10% to +15% based on sentiment
+            let change = (marketSentiment - 0.5) * 0.25 + Double.random(in: -0.05...0.10)
+            state.ventures[i].stockPrice *= (1.0 + change)
+            state.ventures[i].valuation = state.ventures[i].stockPrice * state.ventures[i].sharesOutstanding
+        }
+        save()
     }
     
     func reset() {

@@ -53,6 +53,7 @@ struct ZonedGameView: View {
     // MARK: - Top Bar
     
     @State private var showGameInfo = false
+    @State private var showSettings = false
     
     var topBar: some View {
         VStack(spacing: 8) {
@@ -73,10 +74,20 @@ struct ZonedGameView: View {
                 
                 Spacer()
                 
+                // Settings button
+                Button(action: { showSettings = true }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.gray)
+                }
+                .sheet(isPresented: $showSettings) {
+                    SettingsSheet(game: game)
+                }
+                
                 // Help/Info button
                 Button(action: { showGameInfo = true }) {
                     Image(systemName: "questionmark.circle")
-                        .font(.system(size: 18))
+                        .font(.system(size: 16))
                         .foregroundColor(.gray)
                 }
                 .sheet(isPresented: $showGameInfo) {
@@ -965,6 +976,11 @@ struct ZonedGameView: View {
                 departmentHiringSection
             }
             
+            // Ventures / Portfolio Companies
+            if ventureManager.state.ventures.count > 0 || game.isMaxCareer {
+                venturesPortfolioSection
+            }
+            
             // Products
             productsSection
             
@@ -972,6 +988,85 @@ struct ZonedGameView: View {
             contactsSection
         }
         .padding(.horizontal)
+    }
+    
+    // MARK: - Ventures Portfolio Section
+    
+    var venturesPortfolioSection: some View {
+        VStack(spacing: 12) {
+            // Header
+            HStack {
+                Text("🚀")
+                Text("YOUR VENTURES")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .tracking(1.5)
+                Spacer()
+                Text("\(ventureManager.state.ventures.count) companies")
+                    .font(.system(size: 10))
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            
+            // Portfolio value summary
+            if ventureManager.state.ventures.count > 0 {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Portfolio Value")
+                            .font(.system(size: 9))
+                            .foregroundColor(AppColors.textMuted)
+                        Text(game.formatCompact(ventureManager.state.totalVentureValuation))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(AppColors.gold)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Annual Revenue")
+                            .font(.system(size: 9))
+                            .foregroundColor(AppColors.textMuted)
+                        Text(game.formatCompact(ventureManager.totalVentureRevenue))
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(AppColors.mattGreen)
+                    }
+                }
+                .padding(10)
+                .background(AppColors.surfaceLight)
+                .cornerRadius(8)
+            }
+            
+            // Venture list
+            ForEach(ventureManager.state.ventures) { venture in
+                VenturePortfolioRow(venture: venture, game: game)
+            }
+            
+            // Add new venture button
+            if game.isMaxCareer {
+                Button(action: { showNewVentureSheet = true }) {
+                    HStack {
+                        Text("🚀")
+                        Text("Start New Venture")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(AppColors.mattGreen)
+                    .cornerRadius(10)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(AppColors.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(AppColors.gold.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .sheet(isPresented: $showNewVentureSheet) {
+            NewVentureSheet(game: game)
+        }
     }
     
     // MARK: - Department Hiring Section
@@ -1462,79 +1557,70 @@ struct ZonedGameView: View {
     
     // MARK: - Prestige Button
     var prestigeButton: some View {
-        Group {
-            if game.netWorth >= 1_000_000_000 {
-                Button(action: { showPrestigeSheet = true }) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("🔄 PRESTIGE")
+        VStack(spacing: 12) {
+            // Main prestige button - always accessible
+            Button(action: { showPrestigeSheet = true }) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text("🔄")
+                            Text(game.netWorth >= 1_000_000_000 ? "PRESTIGE READY!" : "RETIRE & PRESTIGE")
                                 .font(.system(size: 14, weight: .bold))
-                            Text("Reset with legacy bonuses")
-                                .font(.system(size: 9))
-                                .foregroundColor(.black.opacity(0.7))
                         }
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("\(String(format: "%.1f", PrestigeManager.shared.legacyMultiplier + 0.1))x")
-                                .font(.system(size: 14, weight: .bold))
-                            Text("new multiplier")
-                                .font(.system(size: 9))
-                                .foregroundColor(.black.opacity(0.7))
-                        }
+                        Text(game.netWorth >= 1_000_000_000 ? "Max bonuses unlocked" : "End this life and start fresh")
+                            .font(.system(size: 9))
+                            .foregroundColor(game.netWorth >= 1_000_000_000 ? .black.opacity(0.7) : AppColors.textSecondary)
                     }
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(
-                                LinearGradient(
-                                    colors: [AppColors.gold, AppColors.gold.opacity(0.8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                    )
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        let bonusMultiplier = min(0.1 + (game.netWorth / 10_000_000_000), 0.5)
+                        Text("\(String(format: "%.1f", PrestigeManager.shared.legacyMultiplier + bonusMultiplier))x")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("next life")
+                            .font(.system(size: 9))
+                            .foregroundColor(game.netWorth >= 1_000_000_000 ? .black.opacity(0.7) : AppColors.textSecondary)
+                    }
                 }
-                .buttonStyle(PlainButtonStyle())
-            } else {
-                // Progress to prestige
-                VStack(spacing: 8) {
+                .foregroundColor(game.netWorth >= 1_000_000_000 ? .black : .white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            game.netWorth >= 1_000_000_000
+                                ? LinearGradient(colors: [AppColors.gold, AppColors.gold.opacity(0.8)], startPoint: .leading, endPoint: .trailing)
+                                : LinearGradient(colors: [AppColors.surfaceLight, AppColors.surfaceLight], startPoint: .leading, endPoint: .trailing)
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(game.netWorth >= 1_000_000_000 ? Color.clear : AppColors.gold.opacity(0.5), lineWidth: 1)
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Progress indicator
+            if game.netWorth < 1_000_000_000 {
+                VStack(spacing: 4) {
                     HStack {
-                        Text("🔒 PRESTIGE")
-                            .font(.system(size: 11, weight: .bold))
+                        Text("Bonus Progress")
+                            .font(.system(size: 9))
                             .foregroundColor(AppColors.textMuted)
                         Spacer()
-                        Text("Unlocks at $1B")
-                            .font(.system(size: 10))
-                            .foregroundColor(AppColors.textSecondary)
+                        Text("\(game.formatCompact(game.netWorth)) / $1B")
+                            .font(.system(size: 9))
+                            .foregroundColor(AppColors.gold)
                     }
-                    
-                    // Progress bar
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(AppColors.surfaceLight)
+                            Capsule().fill(AppColors.surfaceLight)
                             Capsule()
                                 .fill(AppColors.gold.opacity(0.5))
                                 .frame(width: max(2, geo.size.width * min(1.0, game.netWorth / 1_000_000_000)))
                         }
                     }
                     .frame(height: 6)
-                    
-                    HStack {
-                        Text(game.formatCompact(game.netWorth))
-                            .font(.system(size: 9))
-                            .foregroundColor(AppColors.textSecondary)
-                        Spacer()
-                        Text("\(game.formatCompact(1_000_000_000 - game.netWorth)) to go")
-                            .font(.system(size: 9))
-                            .foregroundColor(AppColors.warning)
-                    }
                 }
-                .padding(12)
-                .background(AppColors.surfaceLight)
-                .cornerRadius(10)
             }
         }
     }
@@ -1641,12 +1727,9 @@ struct ZonedGameView: View {
             datingPartnerView(dating)
         } else if familyManager.state.isReadyToDate {
             datingPoolSection
-        } else if lifecycle.currentAge >= 22 {
-            readyToDatePrompt
         } else {
-            Text("Focus on building your career first!")
-                .font(.system(size: 11))
-                .foregroundColor(AppColors.textMuted)
+            // Dating available at any age with tradeoffs
+            readyToDatePrompt
         }
     }
     
@@ -1706,10 +1789,37 @@ struct ZonedGameView: View {
                 .font(.subheadline.bold())
                 .foregroundColor(.white)
             
-            Text("Start dating to find a partner, get married, and build a family.")
+            Text("Dating costs money but can unlock opportunities. A supportive partner boosts your career, while some partners may drain your finances.")
                 .font(.caption)
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
+            
+            // Dating cost warning
+            HStack(spacing: 12) {
+                VStack(spacing: 2) {
+                    Text("💸").font(.caption)
+                    Text("Dates cost").font(.system(size: 8)).foregroundColor(AppColors.textMuted)
+                    Text("$100-$1K").font(.system(size: 9, weight: .bold)).foregroundColor(AppColors.warning)
+                }
+                .frame(maxWidth: .infinity)
+                
+                VStack(spacing: 2) {
+                    Text("💍").font(.caption)
+                    Text("Wedding").font(.system(size: 8)).foregroundColor(AppColors.textMuted)
+                    Text("$25K").font(.system(size: 9, weight: .bold)).foregroundColor(AppColors.warning)
+                }
+                .frame(maxWidth: .infinity)
+                
+                VStack(spacing: 2) {
+                    Text("💰").font(.caption)
+                    Text("Partner income").font(.system(size: 8)).foregroundColor(AppColors.textMuted)
+                    Text("+30-80%").font(.system(size: 9, weight: .bold)).foregroundColor(AppColors.mattGreen)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(8)
+            .background(AppColors.surfaceLight)
+            .cornerRadius(8)
             
             Button(action: {
                 familyManager.setReadyToDate(true)
@@ -4077,8 +4187,14 @@ struct NewVentureSheet: View {
                             .foregroundColor(AppColors.textMuted)
                         
                         TextField("Enter company name...", text: $ventureName)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding(12)
+                            .background(Color.white)
                             .foregroundColor(.black)
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(AppColors.border, lineWidth: 1)
+                            )
                     }
                     .padding()
                     .cardStyle()
@@ -5461,6 +5577,436 @@ struct TaxPlanTierRow: View {
     private func handleUpgrade() {
         if taxManager.upgradePlan(cash: &game.cash) {
             NewsFeedManager.shared.addNews(category: .economy, headline: "🏛️ TAX PLAN UPGRADED - Now saving \(Int(tier.taxReduction * 100))% on taxes with \(tier.name) plan!")
+        }
+    }
+}
+
+// MARK: - Venture Portfolio Row
+struct VenturePortfolioRow: View {
+    let venture: Venture
+    @ObservedObject var game: GameState
+    @State private var showIPOSheet = false
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 10) {
+                Text(venture.industry.icon)
+                    .font(.system(size: 20))
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(venture.name)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                        if venture.isPublic {
+                            Text("📈 PUBLIC")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(AppColors.mattGreen)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(AppColors.mattGreen.opacity(0.2))
+                                .cornerRadius(4)
+                        }
+                    }
+                    Text(venture.stage.rawValue)
+                        .font(.system(size: 9))
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(game.formatCompact(venture.valuation))
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(AppColors.gold)
+                    Text("\(Int(venture.growthRate * 100))% growth")
+                        .font(.system(size: 9))
+                        .foregroundColor(AppColors.mattGreen)
+                }
+            }
+            
+            // Stats row
+            HStack(spacing: 16) {
+                HStack(spacing: 4) {
+                    Text("👥").font(.system(size: 10))
+                    Text("\(venture.employees)")
+                        .font(.system(size: 10))
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                HStack(spacing: 4) {
+                    Text("💰").font(.system(size: 10))
+                    Text(game.formatCompact(venture.yearlyRevenue) + "/yr")
+                        .font(.system(size: 10))
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                Spacer()
+                
+                // IPO button if not public yet
+                if !venture.isPublic && venture.valuation >= 100_000_000 {
+                    Button(action: { showIPOSheet = true }) {
+                        Text("GO PUBLIC")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(AppColors.mattGreen)
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+        }
+        .padding(10)
+        .background(AppColors.surfaceLight)
+        .cornerRadius(10)
+        .sheet(isPresented: $showIPOSheet) {
+            IPOSheet(venture: venture, game: game)
+        }
+    }
+}
+
+// MARK: - IPO Sheet
+struct IPOSheet: View {
+    let venture: Venture
+    @ObservedObject var game: GameState
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var ventureManager = VentureManager.shared
+    @State private var sharesOffered: Double = 0.2  // 20% default
+    @State private var showConfirmation = false
+    
+    var ipoValuation: Double {
+        venture.valuation * 1.5  // IPO premium
+    }
+    
+    var proceedsFromIPO: Double {
+        ipoValuation * sharesOffered
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("📈").font(.system(size: 50))
+                        Text("TAKE \(venture.name.uppercased()) PUBLIC")
+                            .font(.system(size: 18, weight: .black))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                        Text("Sell shares to raise capital and unlock stock trading")
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Company stats
+                    HStack(spacing: 16) {
+                        ipoStatBox(icon: "💰", label: "Current Value", value: game.formatCompact(venture.valuation))
+                        ipoStatBox(icon: "📈", label: "IPO Value", value: game.formatCompact(ipoValuation))
+                    }
+                    
+                    // Shares to offer
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("SHARES TO OFFER")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        Slider(value: $sharesOffered, in: 0.1...0.49, step: 0.05)
+                            .accentColor(AppColors.mattGreen)
+                        
+                        HStack {
+                            Text("\(Int(sharesOffered * 100))% of company")
+                                .font(.subheadline.bold())
+                                .foregroundColor(.white)
+                            Spacer()
+                            Text("You receive: \(game.formatCompact(proceedsFromIPO))")
+                                .font(.caption)
+                                .foregroundColor(AppColors.mattGreen)
+                        }
+                        
+                        Text("You'll retain \(Int((1 - sharesOffered) * 100))% ownership")
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Benefits
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("IPO BENEFITS")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        benefitRow(icon: "💵", text: "Immediate cash from share sale")
+                        benefitRow(icon: "📊", text: "Stock price fluctuates with market")
+                        benefitRow(icon: "🔄", text: "Buy/sell your own shares anytime")
+                        benefitRow(icon: "🚀", text: "Higher valuation visibility")
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Go Public button
+                    Button(action: { showConfirmation = true }) {
+                        HStack {
+                            Text("📈")
+                            Text("GO PUBLIC")
+                                .font(.headline.bold())
+                        }
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(AppColors.mattGreen)
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                .padding()
+            }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle("IPO")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+            .alert("Confirm IPO", isPresented: $showConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Go Public") {
+                    executeIPO()
+                }
+            } message: {
+                Text("Take \(venture.name) public at \(game.formatCompact(ipoValuation)) valuation? You'll receive \(game.formatCompact(proceedsFromIPO)) for \(Int(sharesOffered * 100))% of shares.")
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    private func executeIPO() {
+        ventureManager.takeVenturePublic(id: venture.id, sharesOffered: sharesOffered, ipoValuation: ipoValuation)
+        game.cash += proceedsFromIPO
+        game.totalEarned += proceedsFromIPO
+        NewsFeedManager.shared.addNews(category: .markets, headline: "📈 IPO SUCCESS! \(venture.name) goes public at \(game.formatCompact(ipoValuation)) valuation!")
+        dismiss()
+    }
+    
+    private func ipoStatBox(icon: String, label: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(icon).font(.title2)
+            Text(value).font(.subheadline.bold()).foregroundColor(.white)
+            Text(label).font(.caption2).foregroundColor(AppColors.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(AppColors.surfaceLight)
+        .cornerRadius(10)
+    }
+    
+    private func benefitRow(icon: String, text: String) -> some View {
+        HStack(spacing: 8) {
+            Text(icon).font(.caption)
+            Text(text).font(.caption).foregroundColor(AppColors.textSecondary)
+        }
+    }
+}
+
+// MARK: - Settings Manager
+class SettingsManager: ObservableObject {
+    static let shared = SettingsManager()
+    
+    @Published var hapticsEnabled: Bool {
+        didSet { UserDefaults.standard.set(hapticsEnabled, forKey: "hapticsEnabled") }
+    }
+    
+    @Published var soundEnabled: Bool {
+        didSet { UserDefaults.standard.set(soundEnabled, forKey: "soundEnabled") }
+    }
+    
+    @Published var notificationsEnabled: Bool {
+        didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
+    }
+    
+    @Published var autoSaveEnabled: Bool {
+        didSet { UserDefaults.standard.set(autoSaveEnabled, forKey: "autoSaveEnabled") }
+    }
+    
+    private init() {
+        self.hapticsEnabled = UserDefaults.standard.object(forKey: "hapticsEnabled") as? Bool ?? true
+        self.soundEnabled = UserDefaults.standard.object(forKey: "soundEnabled") as? Bool ?? true
+        self.notificationsEnabled = UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
+        self.autoSaveEnabled = UserDefaults.standard.object(forKey: "autoSaveEnabled") as? Bool ?? true
+    }
+}
+
+// MARK: - Settings Sheet
+struct SettingsSheet: View {
+    @ObservedObject var game: GameState
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var settings = SettingsManager.shared
+    @State private var showResetAlert = false
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("⚙️").font(.system(size: 50))
+                        Text("SETTINGS")
+                            .font(.system(size: 20, weight: .black))
+                            .foregroundColor(.white)
+                            .tracking(2)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Gameplay Settings
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("GAMEPLAY")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        settingsToggle(
+                            icon: "📳",
+                            title: "Haptic Feedback",
+                            subtitle: "Vibration on taps and actions",
+                            isOn: $settings.hapticsEnabled
+                        )
+                        
+                        settingsToggle(
+                            icon: "🔊",
+                            title: "Sound Effects",
+                            subtitle: "Play sounds on events",
+                            isOn: $settings.soundEnabled
+                        )
+                        
+                        settingsToggle(
+                            icon: "💾",
+                            title: "Auto Save",
+                            subtitle: "Automatically save progress",
+                            isOn: $settings.autoSaveEnabled
+                        )
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Notifications
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("NOTIFICATIONS")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        settingsToggle(
+                            icon: "🔔",
+                            title: "Push Notifications",
+                            subtitle: "Daily reminders and events",
+                            isOn: $settings.notificationsEnabled
+                        )
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Game Stats
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("STATISTICS")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.textMuted)
+                        
+                        statsRow(label: "Total Taps", value: "\(game.totalTaps)")
+                        statsRow(label: "Total Earned", value: game.formatCompact(game.totalEarned))
+                        statsRow(label: "Lives Lived", value: "\(PrestigeManager.shared.livesLived)")
+                        statsRow(label: "Highest Net Worth", value: game.formatCompact(game.highestNetWorth))
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Danger Zone
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("DANGER ZONE")
+                            .font(.caption.bold())
+                            .foregroundColor(AppColors.warning)
+                        
+                        Button(action: { showResetAlert = true }) {
+                            HStack {
+                                Text("🗑️")
+                                Text("Reset All Progress")
+                                    .font(.subheadline.bold())
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(AppColors.warning)
+                            .padding()
+                            .background(AppColors.warning.opacity(0.1))
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    .padding()
+                    .cardStyle()
+                    
+                    // Version
+                    Text("I'm Rich v1.0")
+                        .font(.caption)
+                        .foregroundColor(AppColors.textMuted)
+                        .padding(.top, 10)
+                }
+                .padding()
+            }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(AppColors.mattGreen)
+                }
+            }
+            .alert("Reset Progress?", isPresented: $showResetAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    game.resetForPrestige()
+                    PrestigeManager.shared.fullReset()
+                    dismiss()
+                }
+            } message: {
+                Text("This will delete ALL your progress including prestige bonuses. This cannot be undone!")
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    private func settingsToggle(icon: String, title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
+        HStack(spacing: 12) {
+            Text(icon).font(.title3)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            
+            Spacer()
+            
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .tint(AppColors.mattGreen)
+        }
+    }
+    
+    private func statsRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.subheadline)
+                .foregroundColor(AppColors.textSecondary)
+            Spacer()
+            Text(value)
+                .font(.subheadline.bold())
+                .foregroundColor(.white)
         }
     }
 }
