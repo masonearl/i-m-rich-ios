@@ -760,13 +760,13 @@ class GameState: ObservableObject {
         // Accumulate investment gains (these compound at year-end)
         accumulateInvestmentGains(deltaTime: deltaTime)
         
-        // Sync financial wealth with net worth
-        let netWorth = cash + totalInvestmentValue
-        wealthManager.syncFinancialWealth(netWorth: netWorth)
+        // Sync financial wealth with net worth (use computed property to include company valuation)
+        let currentNetWorth = self.netWorth
+        wealthManager.syncFinancialWealth(netWorth: currentNetWorth)
         
         // Track highest net worth achieved
-        if netWorth > highestNetWorth {
-            highestNetWorth = netWorth
+        if currentNetWorth > highestNetWorth {
+            highestNetWorth = currentNetWorth
         }
         
         // Lifecycle tick - check for year-end
