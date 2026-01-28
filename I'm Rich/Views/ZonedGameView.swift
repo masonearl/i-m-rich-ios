@@ -4494,7 +4494,7 @@ struct VentureRow: View {
     }
 }
 
-// MARK: - Prestige Sheet
+// MARK: - Prestige Sheet (Compact)
 struct PrestigeSheet: View {
     @ObservedObject var game: GameState
     @ObservedObject var lifecycle: LifeCycleManager
@@ -4512,141 +4512,109 @@ struct PrestigeSheet: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header
+            VStack(spacing: 0) {
+                ScrollView {
                     VStack(spacing: 12) {
-                        Text("🌟")
-                            .font(.system(size: 60))
-                        
-                        Text("START A NEW LIFE")
-                            .font(.system(size: 24, weight: .black))
-                            .foregroundColor(.white)
-                            .tracking(2)
-                        
-                        Text("Reset your progress and begin again with permanent bonuses")
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 20)
-                    
-                    // Current Life Summary
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("THIS LIFE")
-                            .font(.caption.bold())
-                            .foregroundColor(AppColors.textMuted)
-                        
-                        HStack {
-                            statBox(icon: "💰", label: "Earned", value: game.formatCompact(game.totalEarned))
-                            statBox(icon: "📊", label: "Net Worth", value: game.formatCompact(game.netWorth))
-                            statBox(icon: "🎂", label: "Age", value: "\(lifecycle.currentAge)")
+                        // Compact header
+                        HStack(spacing: 10) {
+                            Text("🌟").font(.system(size: 28))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Prestige").font(.headline.bold()).foregroundColor(.white)
+                                Text("Life #\(prestigeManager.livesLived + 1) • Age \(lifecycle.currentAge)")
+                                    .font(.caption).foregroundColor(AppColors.textSecondary)
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(game.formatCompact(game.netWorth))
+                                    .font(.system(size: 14, weight: .bold)).foregroundColor(AppColors.mattGreen)
+                                Text("net worth").font(.system(size: 9)).foregroundColor(AppColors.textMuted)
+                            }
                         }
-                    }
-                    .padding()
-                    .cardStyle()
-                    
-                    // What You'll Get
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("REWARDS FOR NEXT LIFE")
-                            .font(.caption.bold())
-                            .foregroundColor(AppColors.textMuted)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
                         
-                        prestigeReward(
-                            icon: "⚡",
-                            label: "Legacy Multiplier",
-                            current: String(format: "%.1fx", prestigeManager.legacyMultiplier),
-                            new: String(format: "%.1fx", preview.newLegacyMultiplier),
-                            color: AppColors.gold
-                        )
-                        
-                        prestigeReward(
-                            icon: "💵",
-                            label: "Starting Cash",
-                            current: game.formatCompact(prestigeManager.state.startingCashBonus),
-                            new: game.formatCompact(preview.startingCashBonus),
-                            color: AppColors.mattGreen
-                        )
-                        
-                        prestigeReward(
-                            icon: "🔄",
-                            label: "Lives Lived",
-                            current: "\(prestigeManager.livesLived)",
-                            new: "\(preview.newLivesCount)",
-                            color: AppColors.mattBlue
-                        )
-                    }
-                    .padding()
-                    .cardStyle()
-                    
-                    // What's Preserved
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("PRESERVED ACROSS LIVES")
-                            .font(.caption.bold())
-                            .foregroundColor(AppColors.textMuted)
-                        
-                        HStack(spacing: 20) {
-                            preservedItem(icon: "🎨", label: "Themes")
-                            preservedItem(icon: "📚", label: "Lessons")
-                            preservedItem(icon: "🏆", label: "Achievements")
+                        // Rewards preview (compact grid)
+                        VStack(spacing: 8) {
+                            Text("NEXT LIFE BONUSES").font(.system(size: 9, weight: .bold)).foregroundColor(AppColors.textMuted)
+                            
+                            HStack(spacing: 8) {
+                                rewardBox(icon: "⚡", label: "Multiplier",
+                                          current: String(format: "%.1fx", prestigeManager.legacyMultiplier),
+                                          next: String(format: "%.1fx", preview.newLegacyMultiplier),
+                                          color: AppColors.gold)
+                                rewardBox(icon: "💵", label: "Start Cash",
+                                          current: game.formatCompact(prestigeManager.state.startingCashBonus),
+                                          next: game.formatCompact(preview.startingCashBonus),
+                                          color: AppColors.mattGreen)
+                            }
                         }
-                    }
-                    .padding()
-                    .cardStyle()
-                    
-                    // What's Reset
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("WILL BE RESET")
-                            .font(.caption.bold())
-                            .foregroundColor(AppColors.warning)
+                        .padding(.horizontal)
                         
-                        HStack {
-                            resetItem(icon: "💰", label: "Cash")
-                            resetItem(icon: "📈", label: "Investments")
-                            resetItem(icon: "💼", label: "Career")
-                            resetItem(icon: "🏢", label: "Company")
+                        // Preserved vs Reset (inline)
+                        HStack(spacing: 8) {
+                            // Preserved
+                            VStack(spacing: 4) {
+                                Text("KEPT").font(.system(size: 8, weight: .bold)).foregroundColor(AppColors.mattGreen)
+                                HStack(spacing: 6) {
+                                    Text("🎨").font(.system(size: 12))
+                                    Text("🏆").font(.system(size: 12))
+                                    Text("📚").font(.system(size: 12))
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(AppColors.mattGreen.opacity(0.1))
+                            .cornerRadius(8)
+                            
+                            // Reset
+                            VStack(spacing: 4) {
+                                Text("RESET").font(.system(size: 8, weight: .bold)).foregroundColor(AppColors.warning)
+                                HStack(spacing: 6) {
+                                    Text("💰").font(.system(size: 12))
+                                    Text("📈").font(.system(size: 12))
+                                    Text("💼").font(.system(size: 12))
+                                    Text("🏢").font(.system(size: 12))
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(AppColors.warning.opacity(0.1))
+                            .cornerRadius(8)
                         }
+                        .padding(.horizontal)
                     }
-                    .padding()
-                    .background(AppColors.warning.opacity(0.1))
-                    .cornerRadius(12)
-                    
-                    // Prestige Button
-                    Button(action: { showConfirmation = true }) {
-                        HStack {
-                            Text("🌟")
-                            Text("PRESTIGE NOW")
-                                .font(.headline.bold())
-                        }
+                    .padding(.bottom, 80)
+                }
+                
+                // Fixed bottom button
+                Button(action: { showConfirmation = true }) {
+                    Text("🌟 Start New Life")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(.vertical, 14)
                         .background(AppColors.gold)
-                        .cornerRadius(12)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.top, 10)
+                        .cornerRadius(10)
                 }
+                .buttonStyle(PlainButtonStyle())
                 .padding()
+                .background(AppColors.background)
             }
             .background(AppColors.background.ignoresSafeArea())
-            .navigationTitle("Prestige")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(AppColors.textSecondary)
+                    Button("✕") { dismiss() }.foregroundColor(.gray)
                 }
             }
             .alert("Start New Life?", isPresented: $showConfirmation) {
                 Button("Cancel", role: .cancel) { }
-                Button("Prestige", role: .destructive) {
-                    executePrestige()
-                }
+                Button("Prestige", role: .destructive) { executePrestige() }
             } message: {
-                Text("Your cash, investments, career, and company will reset. Your legacy bonuses will increase.")
+                Text("Cash, investments, career reset. Legacy bonuses increase.")
             }
         }
+        .presentationDetents([.height(320)])
         .preferredColorScheme(.dark)
     }
     
@@ -4659,74 +4627,26 @@ struct PrestigeSheet: View {
             educationManager: EducationManager.shared,
             achievementManager: AchievementManager.shared
         )
-        
-        // Reset game state for new life
         game.resetForPrestige()
-        
         dismiss()
     }
     
-    private func statBox(icon: String, label: String, value: String) -> some View {
+    private func rewardBox(icon: String, label: String, current: String, next: String, color: Color) -> some View {
         VStack(spacing: 4) {
-            Text(icon)
-                .font(.title2)
-            Text(value)
-                .font(.subheadline.bold())
-                .foregroundColor(.white)
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(AppColors.textMuted)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(AppColors.surfaceLight)
-        .cornerRadius(10)
-    }
-    
-    private func prestigeReward(icon: String, label: String, current: String, new: String, color: Color) -> some View {
-        HStack {
-            Text(icon)
-                .font(.title3)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(.subheadline.bold())
-                    .foregroundColor(.white)
-                Text("\(current) → \(new)")
-                    .font(.caption)
-                    .foregroundColor(AppColors.textSecondary)
+            HStack(spacing: 4) {
+                Text(icon).font(.system(size: 16))
+                Text(label).font(.system(size: 10, weight: .bold)).foregroundColor(.white)
             }
-            
-            Spacer()
-            
-            Text("+\(new)")
-                .font(.subheadline.bold())
-                .foregroundColor(color)
-        }
-        .padding()
-        .background(color.opacity(0.1))
-        .cornerRadius(10)
-    }
-    
-    private func preservedItem(icon: String, label: String) -> some View {
-        VStack(spacing: 4) {
-            Text(icon)
-                .font(.title3)
-            Text(label)
-                .font(.caption)
-                .foregroundColor(AppColors.textSecondary)
-        }
-    }
-    
-    private func resetItem(icon: String, label: String) -> some View {
-        VStack(spacing: 4) {
-            Text(icon)
-                .font(.caption)
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(AppColors.warning)
+            HStack(spacing: 4) {
+                Text(current).font(.system(size: 11)).foregroundColor(AppColors.textSecondary)
+                Text("→").font(.system(size: 9)).foregroundColor(AppColors.textMuted)
+                Text(next).font(.system(size: 11, weight: .bold)).foregroundColor(color)
+            }
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
     }
 }
 
