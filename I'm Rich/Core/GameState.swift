@@ -538,13 +538,13 @@ class GameState: ObservableObject {
     }
     
     /// BALANCED: Phase-based income cap per tick (0.1 seconds)
-    /// Early phases have strict caps, late game allows more but still bounded
+    /// Early phases have strict caps, late game allows more to match displayed rates
     var maxIncomePerTick: Double {
         switch currentPhase {
         case .hustle: return 100               // Max $1K/sec = $86K/day
         case .careerLeverage: return 1_000     // Max $10K/sec = $864K/day
-        case .portfolioEngine: return 10_000   // Max $100K/sec = $8.6M/day
-        case .legacyScale: return 100_000      // Max $1M/sec = $86M/day
+        case .portfolioEngine: return 100_000  // Max $1M/sec = $86M/day
+        case .legacyScale: return 1_000_000    // Max $10M/sec = $864M/day
         }
     }
     
