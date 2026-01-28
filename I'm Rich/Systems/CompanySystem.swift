@@ -283,6 +283,12 @@ struct Venture: Identifiable, Codable {
     var growthRate: Double  // Annual growth rate
     var isActive: Bool
     
+    // IPO properties
+    var isPublic: Bool = false
+    var stockPrice: Double = 0
+    var sharesOutstanding: Double = 1_000_000  // 1M shares default
+    var ownershipPercent: Double = 1.0  // 100% ownership initially
+    
     /// Calculate yearly revenue based on valuation and industry
     var yearlyRevenue: Double {
         valuation * 0.15  // ~15% of valuation as revenue
@@ -469,6 +475,33 @@ class VentureManager: ObservableObject {
     /// Get total passive income from all ventures
     func getTotalVentureIncome() -> Double {
         state.totalVentureProfit
+    }
+    
+    /// Get total revenue from all active ventures
+    var totalVentureRevenue: Double {
+        state.ventures.filter { $0.isActive }.reduce(0) { $0 + $1.yearlyRevenue }
+    }
+    
+    /// Take a venture public (IPO)
+    func takeVenturePublic(id: String, sharesOffered: Double, ipoValuation: Double) {
+        guard let index = state.ventures.firstIndex(where: { $0.id == id }) else { return }
+        
+        state.ventures[index].isPublic = true
+        state.ventures[index].valuation = ipoValuation
+        state.ventures[index].ownershipPercent = 1.0 - sharesOffered
+        state.ventures[index].stockPrice = ipoValuation / state.ventures[index].sharesOutstanding
+        save()
+    }
+    
+    /// Update stock prices based on market sentiment
+    func updateStockPrices(marketSentiment: Double) {
+        for i in 0..<state.ventures.count where state.ventures[i].isPublic {
+            let volatility = Double.random(in: -0.05...0.05)
+            let sentimentEffect = (marketSentiment - 0.5) * 0.1
+            state.ventures[i].stockPrice *= (1 + volatility + sentimentEffect)
+            state.ventures[i].valuation = state.ventures[i].stockPrice * state.ventures[i].sharesOutstanding
+        }
+        save()
     }
     
     /// Invest more money in an existing venture

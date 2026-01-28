@@ -16,6 +16,9 @@ class GameState: ObservableObject {
     @Published var totalEarned: Double {
         didSet { UserDefaults.standard.set(totalEarned, forKey: "totalEarned") }
     }
+    @Published var highestNetWorth: Double {
+        didSet { UserDefaults.standard.set(highestNetWorth, forKey: "highestNetWorth") }
+    }
     @Published var statusPoints: Int {
         didSet { UserDefaults.standard.set(statusPoints, forKey: "statusPoints") }
     }
@@ -610,6 +613,7 @@ class GameState: ObservableObject {
         
         let loadedEarned = UserDefaults.standard.double(forKey: "totalEarned")
         self.totalEarned = min(loadedEarned, GameState.maxNetWorth * 10)
+        self.highestNetWorth = UserDefaults.standard.double(forKey: "highestNetWorth")
         self.statusPoints = UserDefaults.standard.integer(forKey: "statusPoints")
         self.totalTaps = UserDefaults.standard.integer(forKey: "totalTaps")
         self.highestStreak = UserDefaults.standard.integer(forKey: "highestStreak")
@@ -759,6 +763,11 @@ class GameState: ObservableObject {
         // Sync financial wealth with net worth
         let netWorth = cash + totalInvestmentValue
         wealthManager.syncFinancialWealth(netWorth: netWorth)
+        
+        // Track highest net worth achieved
+        if netWorth > highestNetWorth {
+            highestNetWorth = netWorth
+        }
         
         // Lifecycle tick - check for year-end
         if let yearEndEvent = lifecycleManager.tick(deltaTime: deltaTime) {
